@@ -30,7 +30,7 @@ def get_logo_base64():
 
 logo_b64 = get_logo_base64()
 
-# --- CUSTOM MOBILE-FRIENDLY HORIZONTAL STYLING ---
+# --- CUSTOM TIGHT HORIZONTAL STYLING ---
 st.markdown("""
     <style>
     .stApp {
@@ -42,29 +42,28 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* FORCE HORIZONTAL LAYOUT ON ALL MOBILE & DESKTOP SCREENS */
+    /* COMPACT HORIZONTAL ROW STYLING */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
+        gap: 6px !important;
     }
     
     [data-testid="column"] {
-        flex: 1 !important;
-        min-width: 0px !important;
-        width: auto !important;
+        flex: 0 1 auto !important;
+        min-width: auto !important;
     }
 
-    /* Compact Mobile Buttons */
+    /* Compact Snug Buttons */
     .stButton>button {
         background-color: #f59e0b;
         color: #0f172a;
         font-weight: 800;
-        border-radius: 8px;
+        border-radius: 6px;
         border: none;
-        padding: 0.4rem 0.1rem;
-        width: 100%;
+        padding: 0.3rem 0.6rem !important;
         font-size: 11px;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
@@ -113,31 +112,31 @@ if 'admin_authenticated' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP NAVIGATION HEADER (Horizontal Row) ---
-header_col1, header_col2, header_col3, header_col4 = st.columns([2, 1, 1, 1])
+# --- TOP NAVIGATION HEADER (Tightly Grouped) ---
+nav_col1, nav_col2, nav_col3, nav_col4 = st.columns([2, 1, 1, 1])
 
-with header_col1:
+with nav_col1:
     if logo_b64:
         st.markdown(f"""
             <div style="display: flex; align-items: center; gap: 4px;">
-                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; border: 1px solid #f59e0b;">
+                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 26px; height: 26px; border-radius: 4px; object-fit: cover; border: 1px solid #f59e0b;">
                 <span style="font-weight: bold; font-size: 11px; color: #f59e0b; white-space: nowrap;">Trendy</span>
             </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown("🥐 **Trendy**", unsafe_allow_html=True)
 
-with header_col2:
+with nav_col2:
     if st.button("🛒 POS", key="nav_pos"):
         st.session_state.active_tab = "pos"
         st.rerun()
 
-with header_col3:
+with nav_col3:
     if st.button("📊 Stats", key="nav_dash"):
         st.session_state.active_tab = "dashboard"
         st.rerun()
 
-with header_col4:
+with nav_col4:
     if st.button("⚙️ Admin", key="nav_admin"):
         st.session_state.active_tab = "admin"
         st.rerun()
@@ -153,16 +152,16 @@ if st.session_state.active_tab == "pos":
     with col_catalog:
         search_query = st.text_input("🔍 Search products...", "", key="search_prod")
         
-        # Category Filter Row (Forced Horizontal)
-        c1, c2, c3, c4, c5 = st.columns(5)
+        # Category Filter Row (Tightly Grouped)
+        cat_c1, cat_c2, cat_c3, cat_c4, cat_c5 = st.columns(5)
         if "selected_cat" not in st.session_state:
             st.session_state.selected_cat = "All"
             
-        if c1.button("All", key="cat_all"): st.session_state.selected_cat = "All"; st.rerun()
-        if c2.button("Pastries", key="cat_pas"): st.session_state.selected_cat = "Pastries"; st.rerun()
-        if c3.button("Cakes", key="cat_cak"): st.session_state.selected_cat = "Cakes"; st.rerun()
-        if c4.button("Breads", key="cat_brd"): st.session_state.selected_cat = "Breads"; st.rerun()
-        if c5.button("Drinks", key="cat_drk"): st.session_state.selected_cat = "Drinks"; st.rerun()
+        if cat_c1.button("All", key="cat_all"): st.session_state.selected_cat = "All"; st.rerun()
+        if cat_c2.button("Pastries", key="cat_pas"): st.session_state.selected_cat = "Pastries"; st.rerun()
+        if cat_c3.button("Cakes", key="cat_cak"): st.session_state.selected_cat = "Cakes"; st.rerun()
+        if cat_c4.button("Breads", key="cat_brd"): st.session_state.selected_cat = "Breads"; st.rerun()
+        if cat_c5.button("Drinks", key="cat_drk"): st.session_state.selected_cat = "Drinks"; st.rerun()
 
         filtered = st.session_state.products
         if st.session_state.selected_cat != "All":
