@@ -4,16 +4,23 @@ from datetime import datetime
 import requests
 import base64
 import os
+from PIL import Image
+
+# --- LOAD CUSTOM LOGO FOR BROWSER TAB (FAVICON) ---
+try:
+    favicon = Image.open("logo.jpg")
+except:
+    favicon = "🥐"
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="Trendy Pastries and Bakery - Executive POS",
-    page_icon="🥐",
+    page_icon=favicon,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- LOAD LOCAL LOGO AS BASE64 FOR UNIVERSAL RENDERING ---
+# --- LOAD LOCAL LOGO AS BASE64 FOR UNIVERSAL HEADER RENDERING ---
 def get_logo_base64():
     if os.path.exists("logo.jpg"):
         with open("logo.jpg", "rb") as f:
@@ -377,4 +384,4 @@ elif st.session_state.active_tab == "admin":
                     else:
                         st.error("PIN must be at least 4 digits.")
                 else:
-                    st.error("Current PIN is incorrect.")
+                    st.error("Current PIN is incorrect
