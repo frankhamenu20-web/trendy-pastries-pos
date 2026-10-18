@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import requests
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -13,19 +14,15 @@ st.set_page_config(
 # --- CUSTOM MOBILE-FRIENDLY DARK STYLING ---
 st.markdown("""
     <style>
-    /* Global Background & Mobile Touch Fix */
     .stApp {
         background-color: #0f172a;
         color: #f8fafc;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    
-    /* Hide default Streamlit headers & footers for clean native app feel */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Touch Friendly Buttons for Smartphones */
     .stButton>button {
         background-color: #f59e0b;
         color: #0f172a;
@@ -41,8 +38,6 @@ st.markdown("""
         background-color: #fbbf24;
         color: #0f172a;
     }
-
-    /* Container Styling */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #1e293b !important;
         border: 1px solid #334155 !important;
@@ -69,6 +64,9 @@ if 'sales_history' not in st.session_state:
 
 if 'ceo_pin' not in st.session_state:
     st.session_state.ceo_pin = "1234"
+
+if 'paystack_secret' not in st.session_state:
+    st.session_state.paystack_secret = ""
 
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
@@ -116,7 +114,6 @@ if st.session_state.active_tab == "pos":
         if search_query:
             filtered = [p for p in filtered if search_query.lower() in p["name"].lower()]
 
-        # Native Grid Rendering (Guarantees smartphone touch responsiveness)
         grid_cols = st.columns(2)
         for idx, prod in enumerate(filtered):
             with grid_cols[idx % 2]:
@@ -172,35 +169,65 @@ if st.session_state.active_tab == "pos":
                 st.rerun()
 
             st.divider()
-            payment_method = st.radio("Payment Method", ["MTN MoMo", "Telecel MoMo", "Paystack API", "Cash"])
+            st.markdown("#### Select Payment Channel")
+            payment_method = st.radio(
+                "Payment Method", 
+                ["MTN MoMo", "Telecel Cash", "AT Money", "Bank Card"]
+            )
 
-            cash_tendered = 0.0
-            if payment_method == "Cash":
-                cash_tendered = st.number_input("Cash Tendered (GH₵)", min_value=0.0, value=total)
-                change = cash_tendered - total
-                st.write(f"**Change Due: GH₵ {max(0, change):.2f}**")
+            customer_email = st.text_input("Customer Email for Receipt", value="customer@trendypastries.com")
 
-            if st.button("Complete Order 🚀", key="checkout_btn"):
-                if payment_method == "Cash" and cash_tendered < total:
-                    st.error("Cash tendered is less than total!")
-                else:
-                    for cart_item in st.session_state.cart:
-                        for p in st.session_state.products:
-                            if p["id"] == cart_item["id"]:
-                                p["stock"] = max(0, p["stock"] - cart_item["qty"])
-
-                    order = {
-                        "id": f"TPB-{1000 + len(st.session_state.sales_history) + 1}",
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "items": list(st.session_state.cart),
-                        "subtotal": subtotal,
-                        "total": total,
-                        "method": payment_method
+            if not st.session_state.paystack_secret:
+                st.warning("⚠️ Please save your Paystack Secret Key in the **Admin** settings to process payments.")
+            else:
+                if st.button(f"Initiate {payment_method} Payment via Paystack 💳", key="paystack_init_btn"):
+                    # Map channels for Paystack
+                    channel_map = {
+                        "MTN MoMo": ["mobile_money"],
+                        "Telecel Cash": ["mobile_money"],
+                        "AT Money": ["mobile_money"],
+                        "Bank Card": ["card"]
                     }
-                    st.session_state.sales_history.insert(0, order)
-                    st.session_state.cart = []
-                    st.success(f"Order #{order['id']} completed!")
-                    st.balloons()
+                    
+                    url = "https://api.paystack.co/transaction/initialize"
+                    headers = {
+                        "Authorization": f"Bearer {st.session_state.paystack_secret}",
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "email": customer_email,
+                        "amount": int(total * 100),
+                        "currency": "GHS",
+                        "channels": channel_map.get(payment_method, ["card", "mobile_money"])
+                    }
+                    
+                    try:
+                        response = requests.post(url, json=payload, headers=headers)
+                        res_data = response.json()
+                        if res_data.get("status"):
+                            checkout_url = res_data["data"]["authorization_url"]
+                            st.success(f"Paystack request generated successfully for {payment_method}!")
+                            st.markdown(f"👉 **[Click Here to Pay GH₵ {total:.2f} via {payment_method}]({checkout_url})**", unsafe_allow_html=True)
+                            
+                            # Record pending sale in history
+                            for cart_item in st.session_state.cart:
+                                for p in st.session_state.products:
+                                    if p["id"] == cart_item["id"]:
+                                        p["stock"] = max(0, p["stock"] - cart_item["qty"])
+
+                            order = {
+                                "id": f"TPB-{1000 + len(st.session_state.sales_history) + 1}",
+                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "items": list(st.session_state.cart),
+                                "subtotal": subtotal,
+                                "total": total,
+                                "method": payment_method
+                            }
+                            st.session_state.sales_history.insert(0, order)
+                        else:
+                            st.error(f"Paystack Error: {res_data.get('message', 'Initialization failed')}")
+                    except Exception as e:
+                        st.error(f"Connection error: {e}")
 
 # ==========================================
 # VIEW 2: CEO FINANCIAL DASHBOARD
@@ -249,15 +276,24 @@ elif st.session_state.active_tab == "dashboard":
             st.info("No sales recorded yet.")
 
 # ==========================================
-# VIEW 3: CEO ADMIN & SETTINGS (Manage & Delete Products)
+# VIEW 3: CEO ADMIN & SETTINGS
 # ==========================================
 elif st.session_state.active_tab == "admin":
     st.markdown("## ⚙️ CEO Management Settings")
 
-    admin_tab1, admin_tab2 = st.tabs(["📦 Product Inventory & Deletion", "🔑 Security PIN"])
+    admin_tab1, admin_tab2, admin_tab3 = st.tabs(["💳 Paystack Gateway", "📦 Product Inventory", "🔑 Security PIN"])
 
     with admin_tab1:
-        st.markdown("### ➕ Add New Product")
+        st.markdown("### Paystack API Configuration")
+        st.caption("Paste your Paystack Secret Key (starts with sk_test_ or sk_live_).")
+        
+        paystack_input = st.text_input("Paystack Secret Key", value=st.session_state.paystack_secret, type="password", key="pay_secret_box")
+        if st.button("Save Paystack Key", key="save_paystack_key"):
+            st.session_state.paystack_secret = paystack_input
+            st.success("Paystack Secret Key saved successfully!")
+
+    with admin_tab2:
+        st.markdown("### Add New Product")
         with st.form("add_product_form"):
             p_name = st.text_input("Product Name")
             p_cat = st.selectbox("Category", ["Pastries", "Cakes", "Breads", "Drinks"])
@@ -282,18 +318,16 @@ elif st.session_state.active_tab == "admin":
                 st.rerun()
 
         st.divider()
-        st.markdown("### 🗑️ Existing Products (Delete or Remove)")
-        
+        st.markdown("### Existing Products (Delete)")
         for p in list(st.session_state.products):
             d_col1, d_col2, d_col3 = st.columns([3, 2, 1])
             d_col1.markdown(f"**{p['name']}** ({p['category']})")
-            d_col2.write(f"GH₵ {p['price']:.2f} | Stock: {p['stock']}")
+            d_col2.write(f"GH₵ {p['price']:.2f}")
             if d_col3.button("Delete 🗑️", key=f"del_prod_{p['id']}"):
                 st.session_state.products = [prod for prod in st.session_state.products if prod["id"] != p["id"]]
-                st.success(f"Removed {p['name']} from POS menu!")
                 st.rerun()
 
-    with admin_tab2:
+    with admin_tab3:
         st.markdown("### Change CEO PIN")
         old_pin = st.text_input("Current PIN", type="password", key="old_pin_box")
         new_pin = st.text_input("New PIN (Min 4 digits)", type="password", key="new_pin_box")
