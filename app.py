@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import requests
+import base64
+import os
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -10,6 +12,16 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# --- LOAD LOCAL LOGO AS BASE64 FOR UNIVERSAL RENDERING ---
+def get_logo_base64():
+    if os.path.exists("logo.jpg"):
+        with open("logo.jpg", "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    return None
+
+logo_b64 = get_logo_base64()
 
 # --- CUSTOM MOBILE-FRIENDLY DARK STYLING ---
 st.markdown("""
@@ -68,13 +80,25 @@ if 'ceo_pin' not in st.session_state:
 if 'paystack_secret' not in st.session_state:
     st.session_state.paystack_secret = ""
 
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP NAVIGATION HEADER ---
+# --- TOP NAVIGATION HEADER WITH EXACT LOGO ---
 header_col1, header_col2 = st.columns([2, 5])
 with header_col1:
-    st.markdown("### 🥐 <span style='color: #f59e0b;'>Trendy Pastries</span>", unsafe_allow_html=True)
+    if logo_b64:
+        st.markdown(f"""
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; border: 1px solid #f59e0b;">
+                <span style="font-weight: bold; font-size: 15px; color: #f59e0b;">Trendy Pastries</span>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("### 🥐 <span style='color: #f59e0b;'>Trendy Pastries</span>", unsafe_allow_html=True)
+
 with header_col2:
     n1, n2, n3 = st.columns(3)
     if n1.button("🛒 POS", key="nav_pos"):
@@ -181,7 +205,6 @@ if st.session_state.active_tab == "pos":
                 st.warning("⚠️ Please save your Paystack Secret Key in the **Admin** settings to process payments.")
             else:
                 if st.button(f"Initiate {payment_method} Payment via Paystack 💳", key="paystack_init_btn"):
-                    # Map channels for Paystack
                     channel_map = {
                         "MTN MoMo": ["mobile_money"],
                         "Telecel Cash": ["mobile_money"],
@@ -209,7 +232,6 @@ if st.session_state.active_tab == "pos":
                             st.success(f"Paystack request generated successfully for {payment_method}!")
                             st.markdown(f"👉 **[Click Here to Pay GH₵ {total:.2f} via {payment_method}]({checkout_url})**", unsafe_allow_html=True)
                             
-                            # Record pending sale in history
                             for cart_item in st.session_state.cart:
                                 for p in st.session_state.products:
                                     if p["id"] == cart_item["id"]:
@@ -230,26 +252,23 @@ if st.session_state.active_tab == "pos":
                         st.error(f"Connection error: {e}")
 
 # ==========================================
-# VIEW 2: CEO FINANCIAL DASHBOARD
+# VIEW 2: CEO FINANCIAL DASHBOARD & ANALYTICS (PIN PROTECTED)
 # ==========================================
 elif st.session_state.active_tab == "dashboard":
-    st.markdown("## 📊 Financial Dashboard")
+    st.markdown("## 📊 CEO Financial Dashboard & Analytics")
 
-    if "dash_auth" not in st.session_state:
-        st.session_state.dash_auth = False
-
-    if not st.session_state.dash_auth:
-        st.warning("🔒 Verification Required.")
-        pin_entered = st.text_input("Enter CEO PIN", type="password", key="dash_pin_box")
+    if not st.session_state.authenticated:
+        st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock analytics and dashboard.")
+        pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password", key="dash_pin_box")
         if st.button("Unlock Dashboard", key="unlock_dash_btn"):
             if pin_entered == st.session_state.ceo_pin:
-                st.session_state.dash_auth = True
+                st.session_state.authenticated = True
                 st.rerun()
             else:
                 st.error("Incorrect PIN.")
     else:
         if st.button("Lock Dashboard", key="lock_dash_btn"):
-            st.session_state.dash_auth = False
+            st.session_state.authenticated = False
             st.rerun()
 
         sales = st.session_state.sales_history
@@ -263,6 +282,7 @@ elif st.session_state.active_tab == "dashboard":
         k3.metric("Avg Order", f"GH₵ {avg_order:.2f}")
 
         st.divider()
+        st.markdown("#### Transaction Audit Trail")
         if sales:
             df_sales = pd.DataFrame([{
                 "Order ID": o["id"],
@@ -276,7 +296,7 @@ elif st.session_state.active_tab == "dashboard":
             st.info("No sales recorded yet.")
 
 # ==========================================
-# VIEW 3: CEO ADMIN & SETTINGS
+# VIEW 3: CEO ADMIN & SETTINGS (Unified PIN & Inventory)
 # ==========================================
 elif st.session_state.active_tab == "admin":
     st.markdown("## ⚙️ CEO Management Settings")
