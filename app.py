@@ -30,7 +30,7 @@ def get_logo_base64():
 
 logo_b64 = get_logo_base64()
 
-# --- MOBILE PORTRAIT FIT & RESPONSIVE STYLING ---
+# --- EXACT SKETCH LAYOUT STYLING ---
 st.markdown("""
     <style>
     html, body, [data-testid="stAppViewContainer"], .stApp {
@@ -52,49 +52,12 @@ st.markdown("""
         max-width: 600px !important;
     }
 
-    /* Top Navigation Bar */
-    [data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        gap: 4px !important;
-        background-color: #1e293b;
-        padding: 6px;
-        border-radius: 12px;
-        border: 1px solid #334155;
-    }
-    
-    [data-testid="column"] {
-        flex: 1 !important;
-        min-width: 0px !important;
-        padding: 0px !important;
-    }
-
-    /* Button Styling */
-    .stButton>button {
-        background-color: #f59e0b;
-        color: #0f172a;
-        font-weight: 800;
-        border-radius: 8px;
-        border: none;
-        padding: 0.4rem 0.2rem !important;
-        font-size: 11px;
-        width: 100%;
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-        white-space: nowrap !important;
-    }
-    
-    .stButton>button:hover {
-        background-color: #fbbf24 !important;
-    }
-
+    /* Container Styling for Product Cards */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #1e293b !important;
         border: 1px solid #334155 !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
+        padding: 8px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -102,11 +65,11 @@ st.markdown("""
 # --- INITIALIZE SESSION STATE DATA ---
 if 'products' not in st.session_state:
     st.session_state.products = [
-        {"id": 1, "name": "Meat Pie (Beef)", "cost": 7.00, "price": 15.00, "category": "Pastries", "stock": 25, "image": "https://images.unsplash.com/photo-1621996346565-e3d5d6281273?w=300&auto=format&fit=crop&q=80"},
-        {"id": 2, "name": "Chicken Pie", "cost": 9.00, "price": 18.00, "category": "Pastries", "stock": 20, "image": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80"},
-        {"id": 3, "name": "Red Velvet Slice", "cost": 15.00, "price": 35.00, "category": "Cakes", "stock": 10, "image": "https://images.unsplash.com/photo-1586788680434-30d324b2d46f?w=300&auto=format&fit=crop&q=80"},
-        {"id": 4, "name": "Ghana Sugar Bread", "cost": 10.00, "price": 20.00, "category": "Breads", "stock": 15, "image": "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=300&auto=format&fit=crop&q=80"},
-        {"id": 5, "name": "Fresh Sobolo", "cost": 4.00, "price": 10.00, "category": "Drinks", "stock": 40, "image": "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&auto=format&fit=crop&q=80"}
+        {"id": 1, "name": "Meat Pie (Beef)", "cost": 7.00, "price": 15.00, "category": "Pastries", "stock": 25},
+        {"id": 2, "name": "Chicken Pie", "cost": 9.00, "price": 18.00, "category": "Pastries", "stock": 20},
+        {"id": 3, "name": "Red Velvet Slice", "cost": 15.00, "price": 35.00, "category": "Cakes", "stock": 10},
+        {"id": 4, "name": "Ghana Sugar Bread", "cost": 10.00, "price": 20.00, "category": "Breads", "stock": 15},
+        {"id": 5, "name": "Fresh Sobolo", "cost": 4.00, "price": 10.00, "category": "Drinks", "stock": 40}
     ]
 
 if 'cart' not in st.session_state:
@@ -130,45 +93,35 @@ if 'admin_authenticated' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP NAVIGATION BAR (As sketched: Pos, Stats, Admin, Logo) ---
-nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
-
-with nav_col1:
-    if st.button("Pos", key="nav_pos"):
-        st.session_state.active_tab = "pos"
-        st.rerun()
-
-with nav_col2:
-    if st.button("Stats", key="nav_dash"):
-        st.session_state.active_tab = "dashboard"
-        st.rerun()
-
-with nav_col3:
-    if st.button("Admin", key="nav_admin"):
-        st.session_state.active_tab = "admin"
-        st.rerun()
-
-with nav_col4:
+# --- TOP NAVIGATION BAR (Exact Sketch Match) ---
+nav_c1, nav_c2, nav_c3, nav_c4 = st.columns(4)
+with nav_c1:
+    if st.button("Pos", key="nav_pos"): st.session_state.active_tab = "pos"; st.rerun()
+with nav_c2:
+    if st.button("Stats", key="nav_dash"): st.session_state.active_tab = "dashboard"; st.rerun()
+with nav_c3:
+    if st.button("Admin", key="nav_admin"): st.session_state.active_tab = "admin"; st.rerun()
+with nav_c4:
     if logo_b64:
         st.markdown(f"""
-            <div style="display: flex; justify-content: center; align-items: center; padding-top: 2px;">
-                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b;">
+            <div style="display: flex; justify-content: center; align-items: center; padding-top: 4px;">
+                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b;">
             </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown("🥐", unsafe_allow_html=True)
 
-st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
 
 # ==========================================
-# VIEW 1: POS TERMINAL (Single Column Stacked Layout)
+# VIEW 1: POS TERMINAL
 # ==========================================
 if st.session_state.active_tab == "pos":
     
-    # 1. Search Bar
+    # Search Bar
     search_query = st.text_input("🔍 search products", "", key="search_prod")
     
-    # 2. Category Filter Row (All, Pastries, Cakes, Breads, Drinks)
+    # Category Filter Row (All, Pastries, Cakes, Breads, Drinks)
     cat_c1, cat_c2, cat_c3, cat_c4, cat_c5 = st.columns(5)
     if "selected_cat" not in st.session_state:
         st.session_state.selected_cat = "All"
@@ -187,17 +140,14 @@ if st.session_state.active_tab == "pos":
     if search_query:
         filtered = [p for p in filtered if search_query.lower() in p["name"].lower()]
 
-    # 3. Product Grid (2 columns as sketched)
+    # Product Grid (2 columns matching sketch)
     grid_cols = st.columns(2)
     for idx, prod in enumerate(filtered):
         with grid_cols[idx % 2]:
             with st.container(border=True):
-                try:
-                    st.image(prod['image'], use_container_width=True)
-                except:
-                    st.write("🥐")
-                st.markdown(f"**{prod['name']}**")
-                st.markdown(f"GH₵ {prod['price']:.2f}")
+                st.markdown("<div style='text-align: center; font-size: 32px;'>🥐</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: center; font-weight: bold;'>{prod['name']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: center; color: #f59e0b;'>GH₵ {prod['price']:.2f}</div>", unsafe_allow_html=True)
                 if st.button(f"Add", key=f"add_cart_{prod['id']}"):
                     if prod['stock'] > 0:
                         exist = next((item for item in st.session_state.cart if item["id"] == prod["id"]), None)
@@ -212,7 +162,7 @@ if st.session_state.active_tab == "pos":
 
     st.divider()
 
-    # 4. Current Order / Cart Section (Directly underneath as sketched)
+    # Current Order Section (Directly underneath as sketched)
     st.markdown("### Current Order")
     
     if not st.session_state.cart:
@@ -386,7 +336,6 @@ elif st.session_state.active_tab == "admin":
                 p_cost = st.number_input("Cost Price (GH₵)", min_value=0.0, value=5.0)
                 p_price = st.number_input("Selling Price (GH₵)", min_value=0.0, value=15.0)
                 p_stock = st.number_input("Stock Quantity", min_value=1, value=20)
-                p_img = st.text_input("Image URL", value="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300")
                 
                 submitted = st.form_submit_button("Save Product")
                 if submitted and p_name:
@@ -396,8 +345,7 @@ elif st.session_state.active_tab == "admin":
                         "cost": p_cost,
                         "price": p_price,
                         "category": p_cat,
-                        "stock": p_stock,
-                        "image": p_img
+                        "stock": p_stock
                     }
                     st.session_state.products.append(new_item)
                     st.success(f"Added {p_name} to menu!")
