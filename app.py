@@ -30,7 +30,7 @@ def get_logo_base64():
 
 logo_b64 = get_logo_base64()
 
-# --- ULTRA-TIGHT SPACING STYLING (0.1 CM APART) ---
+# --- MOBILE APP BAR STYLING (WHATSAPP/TELEGRAM STYLE) ---
 st.markdown("""
     <style>
     .stApp {
@@ -42,39 +42,47 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* ULTRA-TIGHT HORIZONTAL ROW SPACING */
+    /* FORCE HORIZONTAL APP BAR LAYOUT */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
-        gap: 2px !important; /* ~0.1 cm gap */
+        justify-content: space-between !important;
+        gap: 4px !important;
+        background-color: #1e293b;
+        padding: 6px 8px;
+        border-radius: 16px;
+        border: 1px solid #334155;
     }
     
     [data-testid="column"] {
-        flex: 0 1 auto !important;
+        flex: 1 !important;
         min-width: 0px !important;
-        padding-left: 1px !important;
-        padding-right: 1px !important;
+        padding: 0px !important;
     }
 
-    /* Compact Snug Buttons */
+    /* Sleek App Bar Buttons */
     .stButton>button {
-        background-color: #f59e0b;
-        color: #0f172a;
-        font-weight: 800;
-        border-radius: 4px;
+        background-color: transparent !important;
+        color: #94a3b8 !important;
+        font-weight: 600;
+        border-radius: 12px;
         border: none;
-        padding: 0.3rem 0.4rem !important;
-        font-size: 11px;
+        padding: 0.4rem 0.2rem !important;
+        font-size: 12px;
+        width: 100%;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
         white-space: nowrap !important;
+        transition: all 0.2s ease;
     }
-    .stButton>button:hover, .stButton>button:active {
-        background-color: #fbbf24;
-        color: #0f172a;
+    
+    .stButton>button:hover {
+        background-color: rgba(245, 158, 11, 0.1) !important;
+        color: #f59e0b !important;
     }
+
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #1e293b !important;
         border: 1px solid #334155 !important;
@@ -114,36 +122,35 @@ if 'admin_authenticated' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP NAVIGATION HEADER (Ultra-Tight) ---
-nav_col1, nav_col2, nav_col3, nav_col4 = st.columns([2, 1, 1, 1])
+# --- TOP MOBILE NAVIGATION BAR (Inline Pill Layout) ---
+nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
 
 with nav_col1:
-    if logo_b64:
-        st.markdown(f"""
-            <div style="display: flex; align-items: center; gap: 4px;">
-                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 26px; height: 26px; border-radius: 4px; object-fit: cover; border: 1px solid #f59e0b;">
-                <span style="font-weight: bold; font-size: 11px; color: #f59e0b; white-space: nowrap;">Trendy</span>
-            </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("🥐 **Trendy**", unsafe_allow_html=True)
-
-with nav_col2:
     if st.button("🛒 POS", key="nav_pos"):
         st.session_state.active_tab = "pos"
         st.rerun()
 
-with nav_col3:
+with nav_col2:
     if st.button("📊 Stats", key="nav_dash"):
         st.session_state.active_tab = "dashboard"
         st.rerun()
 
-with nav_col4:
+with nav_col3:
     if st.button("⚙️ Admin", key="nav_admin"):
         st.session_state.active_tab = "admin"
         st.rerun()
 
-st.divider()
+with nav_col4:
+    if logo_b64:
+        st.markdown(f"""
+            <div style="display: flex; justify-content: center; align-items: center; padding-top: 4px;">
+                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b;">
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("🥐", unsafe_allow_html=True)
+
+st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
 
 # ==========================================
 # VIEW 1: POS TERMINAL
@@ -154,7 +161,7 @@ if st.session_state.active_tab == "pos":
     with col_catalog:
         search_query = st.text_input("🔍 Search products...", "", key="search_prod")
         
-        # Category Filter Row (Ultra-Tight)
+        # Category Filter Row (Tightly Grouped Horizontal)
         cat_c1, cat_c2, cat_c3, cat_c4, cat_c5 = st.columns(5)
         if "selected_cat" not in st.session_state:
             st.session_state.selected_cat = "All"
