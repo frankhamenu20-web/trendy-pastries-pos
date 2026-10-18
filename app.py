@@ -30,7 +30,7 @@ def get_logo_base64():
 
 logo_b64 = get_logo_base64()
 
-# --- CUSTOM MOBILE-FRIENDLY HORIZONTAL BUTTON & DARK STYLING ---
+# --- CUSTOM MOBILE-FRIENDLY HORIZONTAL STYLING ---
 st.markdown("""
     <style>
     .stApp {
@@ -42,23 +42,33 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Force columns to stay horizontal on mobile screens */
+    /* FORCE HORIZONTAL LAYOUT ON ALL MOBILE & DESKTOP SCREENS */
+    [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+    
     [data-testid="column"] {
         flex: 1 !important;
-        min-width: 70px !important;
+        min-width: 0px !important;
+        width: auto !important;
     }
 
+    /* Compact Mobile Buttons */
     .stButton>button {
         background-color: #f59e0b;
         color: #0f172a;
         font-weight: 800;
         border-radius: 8px;
         border: none;
-        padding: 0.5rem 0.2rem;
+        padding: 0.4rem 0.1rem;
         width: 100%;
-        font-size: 13px;
+        font-size: 11px;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
+        white-space: nowrap !important;
     }
     .stButton>button:hover, .stButton>button:active {
         background-color: #fbbf24;
@@ -103,15 +113,15 @@ if 'admin_authenticated' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP NAVIGATION HEADER (Horizontal on Mobile & Desktop) ---
+# --- TOP NAVIGATION HEADER (Horizontal Row) ---
 header_col1, header_col2, header_col3, header_col4 = st.columns([2, 1, 1, 1])
 
 with header_col1:
     if logo_b64:
         st.markdown(f"""
-            <div style="display: flex; align-items: center; gap: 6px; padding-top: 4px;">
-                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 32px; height: 32px; border-radius: 6px; object-fit: cover; border: 1px solid #f59e0b;">
-                <span style="font-weight: bold; font-size: 13px; color: #f59e0b; white-space: nowrap;">Trendy Pastries</span>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 28px; height: 28px; border-radius: 4px; object-fit: cover; border: 1px solid #f59e0b;">
+                <span style="font-weight: bold; font-size: 11px; color: #f59e0b; white-space: nowrap;">Trendy</span>
             </div>
         """, unsafe_allow_html=True)
     else:
@@ -143,6 +153,7 @@ if st.session_state.active_tab == "pos":
     with col_catalog:
         search_query = st.text_input("🔍 Search products...", "", key="search_prod")
         
+        # Category Filter Row (Forced Horizontal)
         c1, c2, c3, c4, c5 = st.columns(5)
         if "selected_cat" not in st.session_state:
             st.session_state.selected_cat = "All"
