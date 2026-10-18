@@ -5,65 +5,48 @@ from datetime import datetime
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="Trendy Pastries and Bakery - Executive POS",
-    page_icon="logo.jpg",
+    page_icon="🥐",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- NETLIFY-INSPIRED DARK THEME STYLING ---
+# --- CUSTOM MOBILE-FRIENDLY DARK STYLING ---
 st.markdown("""
     <style>
-    /* Global Slate Dark Background & Text Styling */
+    /* Global Background & Mobile Touch Fix */
     .stApp {
         background-color: #0f172a;
         color: #f8fafc;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     
-    /* Hide default Streamlit headers & footers for clean app feel */
+    /* Hide default Streamlit headers & footers for clean native app feel */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Custom Card Containers */
-    .pos-card {
-        background-color: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 12px;
-        padding: 12px;
-        text-align: center;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        transition: all 0.2s ease-in-out;
-    }
-    .pos-card:hover {
-        border-color: #f59e0b;
-        box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.15);
-    }
-
-    /* Primary Buttons / Amber Accents */
+    /* Touch Friendly Buttons for Smartphones */
     .stButton>button {
         background-color: #f59e0b;
         color: #0f172a;
         font-weight: 800;
         border-radius: 10px;
         border: none;
-        padding: 0.5rem 1rem;
+        padding: 0.6rem 1rem;
         width: 100%;
-        transition: background-color 0.2s;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
     }
-    .stButton>button:hover {
+    .stButton>button:hover, .stButton>button:active {
         background-color: #fbbf24;
         color: #0f172a;
     }
 
-    /* Secondary / Utility Buttons */
-    button[kind="secondary"] {
+    /* Container Styling */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #1e293b !important;
-        color: #f8fafc !important;
         border: 1px solid #334155 !important;
-    }
-    button[kind="secondary"]:hover {
-        background-color: #334155 !important;
+        border-radius: 12px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -90,137 +73,116 @@ if 'ceo_pin' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP HEADER BAR (Matching Netlify Header) ---
-header_col1, header_col2, header_col3 = st.columns([1, 4, 3])
+# --- TOP NAVIGATION HEADER ---
+header_col1, header_col2 = st.columns([2, 5])
 with header_col1:
-    try:
-        st.image("logo.jpg", width=45)
-    except:
-        st.markdown("🥐")
+    st.markdown("### 🥐 <span style='color: #f59e0b;'>Trendy Pastries</span>", unsafe_allow_html=True)
 with header_col2:
-    st.markdown("### <span style='color: #f59e0b;'>Trendy Pastries and Bakery</span>", unsafe_allow_html=True)
-    st.caption("Executive POS & Financial Control Hub")
-
-with header_col3:
-    nav_cols = st.columns(3)
-    if nav_cols[0].button("POS Terminal", key="nav_pos"):
+    n1, n2, n3 = st.columns(3)
+    if n1.button("🛒 POS", key="nav_pos"):
         st.session_state.active_tab = "pos"
         st.rerun()
-    if nav_cols[1].button("Dashboard", key="nav_dash"):
+    if n2.button("📊 Analytics", key="nav_dash"):
         st.session_state.active_tab = "dashboard"
         st.rerun()
-    if nav_cols[2].button("Settings", key="nav_admin"):
+    if n3.button("⚙️ Admin", key="nav_admin"):
         st.session_state.active_tab = "admin"
         st.rerun()
 
-st.markdown("<hr style='margin: 10px 0px; border-color: #334155;'>", unsafe_allow_html=True)
+st.divider()
 
 # ==========================================
 # VIEW 1: POS TERMINAL
 # ==========================================
 if st.session_state.active_tab == "pos":
-    col_catalog, col_cart = st.columns([3, 2], gap="medium")
+    col_catalog, col_cart = st.columns([3, 2])
 
     with col_catalog:
-        # Search & Filter Row
-        search_query = st.text_input("🔍 Search pastries, cakes, breads...", "", key="search_prod")
+        search_query = st.text_input("🔍 Search products...", "", key="search_prod")
         
-        # Category Tabs
-        cat_col1, cat_col2, cat_col3, cat_col4, cat_col5 = st.columns(5)
+        c1, c2, c3, c4, c5 = st.columns(5)
         if "selected_cat" not in st.session_state:
             st.session_state.selected_cat = "All"
             
-        if cat_col1.button("All Items", key="cat_all"): st.session_state.selected_cat = "All"; st.rerun()
-        if cat_col2.button("Pastries", key="cat_pas"): st.session_state.selected_cat = "Pastries"; st.rerun()
-        if cat_col3.button("Cakes", key="cat_cak"): st.session_state.selected_cat = "Cakes"; st.rerun()
-        if cat_col4.button("Breads", key="cat_brd"): st.session_state.selected_cat = "Breads"; st.rerun()
-        if cat_col5.button("Drinks", key="cat_drk"): st.session_state.selected_cat = "Drinks"; st.rerun()
+        if c1.button("All", key="cat_all"): st.session_state.selected_cat = "All"; st.rerun()
+        if c2.button("Pastries", key="cat_pas"): st.session_state.selected_cat = "Pastries"; st.rerun()
+        if c3.button("Cakes", key="cat_cak"): st.session_state.selected_cat = "Cakes"; st.rerun()
+        if c4.button("Breads", key="cat_brd"): st.session_state.selected_cat = "Breads"; st.rerun()
+        if c5.button("Drinks", key="cat_drk"): st.session_state.selected_cat = "Drinks"; st.rerun()
 
-        st.markdown(f"<p style='font-size: 11px; color: #94a3b8; margin-top: 5px;'>Active Filter: <b>{st.session_state.selected_cat}</b></p>", unsafe_allow_html=True)
-
-        # Filter Logic
         filtered = st.session_state.products
         if st.session_state.selected_cat != "All":
             filtered = [p for p in filtered if p["category"] == st.session_state.selected_cat]
         if search_query:
             filtered = [p for p in filtered if search_query.lower() in p["name"].lower()]
 
-        # Product Grid (2 columns)
+        # Native Grid Rendering (Guarantees smartphone touch responsiveness)
         grid_cols = st.columns(2)
         for idx, prod in enumerate(filtered):
             with grid_cols[idx % 2]:
-                st.markdown(f"""
-                    <div class="pos-card">
-                        <img src="{prod['image']}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 8px; margin-bottom: 8px;">
-                        <div style="font-weight: bold; font-size: 13px; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{prod['name']}</div>
-                        <div style="color: #f59e0b; font-weight: 800; font-size: 15px; margin: 4px 0;">GH₵ {prod['price']:.2f}</div>
-                        <div style="font-size: 10px; color: #94a3b8;">{prod['stock']} units left</div>
-                    </div>
-                """, unsafe_allow_html=True)
-                if st.button(f"Add ➕", key=f"add_cart_{prod['id']}"):
-                    if prod['stock'] > 0:
-                        exist = next((item for item in st.session_state.cart if item["id"] == prod["id"]), None)
-                        if exist:
-                            if exist["qty"] < prod['stock']:
-                                exist["qty"] += 1
+                with st.container(border=True):
+                    try:
+                        st.image(prod['image'], use_container_width=True)
+                    except:
+                        st.write("🥐")
+                    st.markdown(f"**{prod['name']}**")
+                    st.markdown(f"**GH₵ {prod['price']:.2f}** | Stock: {prod['stock']}")
+                    if st.button(f"Add 🛒", key=f"add_cart_{prod['id']}"):
+                        if prod['stock'] > 0:
+                            exist = next((item for item in st.session_state.cart if item["id"] == prod["id"]), None)
+                            if exist:
+                                if exist["qty"] < prod['stock']:
+                                    exist["qty"] += 1
+                            else:
+                                st.session_state.cart.append({**prod, "qty": 1})
+                            st.rerun()
                         else:
-                            st.session_state.cart.append({**prod, "qty": 1})
-                        st.rerun()
-                    else:
-                        st.error("Out of stock!")
-                st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+                            st.error("Out of stock!")
 
     with col_cart:
         st.markdown("#### 🛒 Current Order")
         
         if not st.session_state.cart:
-            st.info("No items in the order yet. Select items from the menu.")
+            st.info("No items in cart.")
         else:
             subtotal = 0.0
             for item in st.session_state.cart:
                 item_total = item['price'] * item['qty']
                 subtotal += item_total
                 
-                cc1, cc2, cc3, cc4 = st.columns([3, 2, 2, 1])
+                cc1, cc2, cc3 = st.columns([3, 2, 1])
                 cc1.markdown(f"**{item['name']}**")
-                cc2.text(f"GH₵{item['price']:.2f}")
-                cc3.text(f"Qty: {item['qty']}")
-                if cc4.button("❌", key=f"rem_{item['id']}"):
+                cc2.write(f"{item['qty']}x GH₵{item['price']:.2f}")
+                if cc3.button("❌", key=f"rem_{item['id']}"):
                     st.session_state.cart = [i for i in st.session_state.cart if i["id"] != item["id"]]
                     st.rerun()
 
-            st.markdown("<hr style='border-color: #334155;'>", unsafe_allow_html=True)
-            
+            st.divider()
             discount_pct = st.number_input("Discount (%)", min_value=0, max_value=100, value=0, key="disc_input")
             discounted_subtotal = subtotal * (1 - discount_pct / 100)
             tax = discounted_subtotal * 0.08
             total = discounted_subtotal + tax
 
-            col_sub1, col_sub2 = st.columns(2)
-            col_sub1.text(f"Subtotal: GH₵ {subtotal:.2f}")
-            col_sub2.text(f"Tax (8%): GH₵ {tax:.2f}")
-            if discount_pct > 0:
-                st.text(f"Discount: -GH₵ {(subtotal - discounted_subtotal):.2f}")
-            
-            st.markdown(f"### <span style='color: #f59e0b;'>Total: GH₵ {total:.2f}</span>", unsafe_allow_html=True)
+            st.write(f"Subtotal: GH₵ {subtotal:.2f}")
+            st.write(f"Tax (8%): GH₵ {tax:.2f}")
+            st.markdown(f"### Total: GH₵ {total:.2f}")
 
-            if st.button("Clear All", key="clear_cart_btn"):
+            if st.button("Clear Cart", key="clear_cart_btn"):
                 st.session_state.cart = []
                 st.rerun()
 
-            st.markdown("---")
-            st.markdown("#### Select Payment Source")
-            payment_method = st.radio("Payment Method", ["MTN MoMo", "Telecel MoMo", "Paystack API", "Cash"], horizontal=True)
+            st.divider()
+            payment_method = st.radio("Payment Method", ["MTN MoMo", "Telecel MoMo", "Paystack API", "Cash"])
 
             cash_tendered = 0.0
             if payment_method == "Cash":
                 cash_tendered = st.number_input("Cash Tendered (GH₵)", min_value=0.0, value=total)
                 change = cash_tendered - total
-                st.markdown(f"**Change Due: <span style='color: #10b981;'>GH₵ {max(0, change):.2f}</span>**", unsafe_allow_html=True)
+                st.write(f"**Change Due: GH₵ {max(0, change):.2f}**")
 
-            if st.button("Proceed to Payment 🚀", key="checkout_btn"):
+            if st.button("Complete Order 🚀", key="checkout_btn"):
                 if payment_method == "Cash" and cash_tendered < total:
-                    st.error("Cash tendered is less than total amount due!")
+                    st.error("Cash tendered is less than total!")
                 else:
                     for cart_item in st.session_state.cart:
                         for p in st.session_state.products:
@@ -237,22 +199,21 @@ if st.session_state.active_tab == "pos":
                     }
                     st.session_state.sales_history.insert(0, order)
                     st.session_state.cart = []
-                    st.success(f"Payment successful! Order #{order['id']} processed via {payment_method}.")
+                    st.success(f"Order #{order['id']} completed!")
                     st.balloons()
 
 # ==========================================
 # VIEW 2: CEO FINANCIAL DASHBOARD
 # ==========================================
 elif st.session_state.active_tab == "dashboard":
-    st.markdown("## 📊 CEO Financial Dashboard & Analytics")
-    st.caption("Audit sales sorted by Mobile Money, Paystack API, Card, and Cash.")
+    st.markdown("## 📊 Financial Dashboard")
 
     if "dash_auth" not in st.session_state:
         st.session_state.dash_auth = False
 
     if not st.session_state.dash_auth:
-        st.warning("🔒 CEO Verification Required. Enter your PIN to view financial records.")
-        pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password", key="dash_pin_box")
+        st.warning("🔒 Verification Required.")
+        pin_entered = st.text_input("Enter CEO PIN", type="password", key="dash_pin_box")
         if st.button("Unlock Dashboard", key="unlock_dash_btn"):
             if pin_entered == st.session_state.ceo_pin:
                 st.session_state.dash_auth = True
@@ -268,67 +229,47 @@ elif st.session_state.active_tab == "dashboard":
         total_rev = sum(o["total"] for o in sales)
         total_orders = len(sales)
         avg_order = total_rev / total_orders if total_orders > 0 else 0
-        est_profit = total_rev * 0.45 # estimated margin
 
-        k1, k2, k3, k4 = st.columns(4)
+        k1, k2, k3 = st.columns(3)
         k1.metric("Total Revenue", f"GH₵ {total_rev:.2f}")
-        k2.metric("Est. Net Profit", f"GH₵ {est_profit:.2f}")
-        k3.metric("Total Orders", total_orders)
-        k4.metric("Avg Order", f"GH₵ {avg_order:.2f}")
+        k2.metric("Total Orders", total_orders)
+        k3.metric("Avg Order", f"GH₵ {avg_order:.2f}")
 
-        st.markdown("---")
-        st.markdown("#### Detailed Transaction Audit Trail")
+        st.divider()
         if sales:
             df_sales = pd.DataFrame([{
                 "Order ID": o["id"],
-                "Date & Time": o["timestamp"],
-                "Source": o["method"],
+                "Date": o["timestamp"],
+                "Method": o["method"],
                 "Items": ", ".join([f"{i['qty']}x {i['name']}" for i in o["items"]]),
-                "Total Paid (GH₵)": f"{o['total']:.2f}"
+                "Total (GH₵)": f"{o['total']:.2f}"
             } for o in sales])
             st.dataframe(df_sales, use_container_width=True)
         else:
-            st.info("No recorded transactions yet.")
+            st.info("No sales recorded yet.")
 
 # ==========================================
-# VIEW 3: CEO ADMIN & SETTINGS (Password Change)
+# VIEW 3: CEO ADMIN & SETTINGS (Manage & Delete Products)
 # ==========================================
 elif st.session_state.active_tab == "admin":
     st.markdown("## ⚙️ CEO Management Settings")
 
-    admin_tab1, admin_tab2 = st.tabs(["🔑 Change CEO Password / PIN", "📦 Product Inventory"])
+    admin_tab1, admin_tab2 = st.tabs(["📦 Product Inventory & Deletion", "🔑 Security PIN"])
 
     with admin_tab1:
-        st.markdown("### Change CEO Security PIN")
-        st.caption("Set a custom secret PIN to restrict access to financial statements.")
-        
-        old_pin = st.text_input("Current CEO PIN", type="password", key="old_pin_input")
-        new_pin = st.text_input("New Secret PIN (At least 4 digits)", type="password", key="new_pin_input")
-        
-        if st.button("Update Security PIN", key="save_pin_btn"):
-            if old_pin == st.session_state.ceo_pin:
-                if len(new_pin) >= 4:
-                    st.session_state.ceo_pin = new_pin
-                    st.success("CEO Security PIN updated successfully!")
-                else:
-                    st.error("New PIN must be at least 4 digits.")
-            else:
-                st.error("Current PIN is incorrect.")
-
-    with admin_tab2:
-        st.markdown("### Add New Product")
+        st.markdown("### ➕ Add New Product")
         with st.form("add_product_form"):
             p_name = st.text_input("Product Name")
             p_cat = st.selectbox("Category", ["Pastries", "Cakes", "Breads", "Drinks"])
             p_cost = st.number_input("Cost Price (GH₵)", min_value=0.0, value=5.0)
             p_price = st.number_input("Selling Price (GH₵)", min_value=0.0, value=15.0)
-            p_stock = st.number_input("Initial Stock Quantity", min_value=1, value=20)
-            p_img = st.text_input("Image URL (Unsplash)", value="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300")
+            p_stock = st.number_input("Stock Quantity", min_value=1, value=20)
+            p_img = st.text_input("Image URL", value="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300")
             
-            submitted = st.form_submit_button("Save Product to Menu")
+            submitted = st.form_submit_button("Save Product")
             if submitted and p_name:
                 new_item = {
-                    "id": len(st.session_state.products) + 1,
+                    "id": len(st.session_state.products) + 100,
                     "name": p_name,
                     "cost": p_cost,
                     "price": p_price,
@@ -337,5 +278,32 @@ elif st.session_state.active_tab == "admin":
                     "image": p_img
                 }
                 st.session_state.products.append(new_item)
-                st.success(f"Added {p_name} successfully!")
+                st.success(f"Added {p_name} to menu!")
                 st.rerun()
+
+        st.divider()
+        st.markdown("### 🗑️ Existing Products (Delete or Remove)")
+        
+        for p in list(st.session_state.products):
+            d_col1, d_col2, d_col3 = st.columns([3, 2, 1])
+            d_col1.markdown(f"**{p['name']}** ({p['category']})")
+            d_col2.write(f"GH₵ {p['price']:.2f} | Stock: {p['stock']}")
+            if d_col3.button("Delete 🗑️", key=f"del_prod_{p['id']}"):
+                st.session_state.products = [prod for prod in st.session_state.products if prod["id"] != p["id"]]
+                st.success(f"Removed {p['name']} from POS menu!")
+                st.rerun()
+
+    with admin_tab2:
+        st.markdown("### Change CEO PIN")
+        old_pin = st.text_input("Current PIN", type="password", key="old_pin_box")
+        new_pin = st.text_input("New PIN (Min 4 digits)", type="password", key="new_pin_box")
+        
+        if st.button("Update PIN", key="save_pin_btn"):
+            if old_pin == st.session_state.ceo_pin:
+                if len(new_pin) >= 4:
+                    st.session_state.ceo_pin = new_pin
+                    st.success("CEO PIN updated successfully!")
+                else:
+                    st.error("PIN must be at least 4 digits.")
+            else:
+                st.error("Current PIN is incorrect.")
