@@ -384,4 +384,4 @@ elif st.session_state.active_tab == "admin":
                     else:
                         st.error("PIN must be at least 4 digits.")
                 else:
-                    st.error("Current PIN is incorrect
+                    st.error("Current PIN is incorrect.")
