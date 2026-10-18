@@ -30,7 +30,7 @@ def get_logo_base64():
 
 logo_b64 = get_logo_base64()
 
-# --- EXACT SKETCH LAYOUT STYLING ---
+# --- ICON GRID MOBILE STYLING ---
 st.markdown("""
     <style>
     html, body, [data-testid="stAppViewContainer"], .stApp {
@@ -52,7 +52,28 @@ st.markdown("""
         max-width: 600px !important;
     }
 
-    /* Container Styling for Product Cards */
+    /* Icon Grid Button Styling */
+    .stButton>button {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+        font-weight: 700;
+        border-radius: 12px;
+        border: 1px solid #334155;
+        padding: 0.5rem 0.2rem !important;
+        font-size: 12px;
+        width: 100%;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        white-space: nowrap !important;
+        transition: all 0.2s ease;
+    }
+    
+    .stButton>button:hover {
+        background-color: #f59e0b !important;
+        color: #0f172a !important;
+        border-color: #f59e0b !important;
+    }
+
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #1e293b !important;
         border: 1px solid #334155 !important;
@@ -93,14 +114,14 @@ if 'admin_authenticated' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP NAVIGATION BAR (Exact Sketch Match) ---
+# --- TOP NAVIGATION ICON GRID ---
 nav_c1, nav_c2, nav_c3, nav_c4 = st.columns(4)
 with nav_c1:
-    if st.button("Pos", key="nav_pos"): st.session_state.active_tab = "pos"; st.rerun()
+    if st.button("🛒 POS", key="nav_pos"): st.session_state.active_tab = "pos"; st.rerun()
 with nav_c2:
-    if st.button("Stats", key="nav_dash"): st.session_state.active_tab = "dashboard"; st.rerun()
+    if st.button("📊 Stats", key="nav_dash"): st.session_state.active_tab = "dashboard"; st.rerun()
 with nav_c3:
-    if st.button("Admin", key="nav_admin"): st.session_state.active_tab = "admin"; st.rerun()
+    if st.button("⚙️ Admin", key="nav_admin"): st.session_state.active_tab = "admin"; st.rerun()
 with nav_c4:
     if logo_b64:
         st.markdown(f"""
@@ -111,7 +132,7 @@ with nav_c4:
     else:
         st.markdown("🥐", unsafe_allow_html=True)
 
-st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
 # ==========================================
 # VIEW 1: POS TERMINAL
@@ -119,20 +140,20 @@ st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
 if st.session_state.active_tab == "pos":
     
     # Search Bar
-    search_query = st.text_input("🔍 search products", "", key="search_prod")
+    search_query = st.text_input("🔍 Search Products", "", key="search_prod")
     
-    # Category Filter Row (All, Pastries, Cakes, Breads, Drinks)
+    # Category Icon Grid Row
     cat_c1, cat_c2, cat_c3, cat_c4, cat_c5 = st.columns(5)
     if "selected_cat" not in st.session_state:
         st.session_state.selected_cat = "All"
         
-    if cat_c1.button("All", key="cat_all"): st.session_state.selected_cat = "All"; st.rerun()
-    if cat_c2.button("Pastries", key="cat_pas"): st.session_state.selected_cat = "Pastries"; st.rerun()
-    if cat_c3.button("Cakes", key="cat_cak"): st.session_state.selected_cat = "Cakes"; st.rerun()
-    if cat_c4.button("Breads", key="cat_brd"): st.session_state.selected_cat = "Breads"; st.rerun()
-    if cat_c5.button("Drinks", key="cat_drk"): st.session_state.selected_cat = "Drinks"; st.rerun()
+    if cat_c1.button("🌐 All", key="cat_all"): st.session_state.selected_cat = "All"; st.rerun()
+    if cat_c2.button("🥐 Pastry", key="cat_pas"): st.session_state.selected_cat = "Pastries"; st.rerun()
+    if cat_c3.button("🎂 Cake", key="cat_cak"): st.session_state.selected_cat = "Cakes"; st.rerun()
+    if cat_c4.button("🍞 Bread", key="cat_brd"): st.session_state.selected_cat = "Breads"; st.rerun()
+    if cat_c5.button("🥤 Drink", key="cat_drk"): st.session_state.selected_cat = "Drinks"; st.rerun()
 
-    st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
     filtered = st.session_state.products
     if st.session_state.selected_cat != "All":
@@ -140,15 +161,15 @@ if st.session_state.active_tab == "pos":
     if search_query:
         filtered = [p for p in filtered if search_query.lower() in p["name"].lower()]
 
-    # Product Grid (2 columns matching sketch)
+    # Product Grid (2 columns)
     grid_cols = st.columns(2)
     for idx, prod in enumerate(filtered):
         with grid_cols[idx % 2]:
             with st.container(border=True):
-                st.markdown("<div style='text-align: center; font-size: 32px;'>🥐</div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='text-align: center; font-weight: bold;'>{prod['name']}</div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='text-align: center; color: #f59e0b;'>GH₵ {prod['price']:.2f}</div>", unsafe_allow_html=True)
-                if st.button(f"Add", key=f"add_cart_{prod['id']}"):
+                st.markdown("<div style='text-align: center; font-size: 28px;'>🥐</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: center; font-weight: bold; font-size: 13px;'>{prod['name']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: center; color: #f59e0b; font-size: 12px;'>GH₵ {prod['price']:.2f}</div>", unsafe_allow_html=True)
+                if st.button(f"➕ Add", key=f"add_cart_{prod['id']}"):
                     if prod['stock'] > 0:
                         exist = next((item for item in st.session_state.cart if item["id"] == prod["id"]), None)
                         if exist:
@@ -162,8 +183,8 @@ if st.session_state.active_tab == "pos":
 
     st.divider()
 
-    # Current Order Section (Directly underneath as sketched)
-    st.markdown("### Current Order")
+    # Current Order Section (Directly underneath)
+    st.markdown("### 🛒 Current Order")
     
     if not st.session_state.cart:
         st.info("No items in cart")
