@@ -30,7 +30,7 @@ def get_logo_base64():
 
 logo_b64 = get_logo_base64()
 
-# --- CUSTOM TIGHT HORIZONTAL STYLING ---
+# --- ULTRA-TIGHT SPACING STYLING (0.1 CM APART) ---
 st.markdown("""
     <style>
     .stApp {
@@ -42,18 +42,20 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* COMPACT HORIZONTAL ROW STYLING */
+    /* ULTRA-TIGHT HORIZONTAL ROW SPACING */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
-        gap: 6px !important;
+        gap: 2px !important; /* ~0.1 cm gap */
     }
     
     [data-testid="column"] {
         flex: 0 1 auto !important;
-        min-width: auto !important;
+        min-width: 0px !important;
+        padding-left: 1px !important;
+        padding-right: 1px !important;
     }
 
     /* Compact Snug Buttons */
@@ -61,9 +63,9 @@ st.markdown("""
         background-color: #f59e0b;
         color: #0f172a;
         font-weight: 800;
-        border-radius: 6px;
+        border-radius: 4px;
         border: none;
-        padding: 0.3rem 0.6rem !important;
+        padding: 0.3rem 0.4rem !important;
         font-size: 11px;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
@@ -112,7 +114,7 @@ if 'admin_authenticated' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP NAVIGATION HEADER (Tightly Grouped) ---
+# --- TOP NAVIGATION HEADER (Ultra-Tight) ---
 nav_col1, nav_col2, nav_col3, nav_col4 = st.columns([2, 1, 1, 1])
 
 with nav_col1:
@@ -152,7 +154,7 @@ if st.session_state.active_tab == "pos":
     with col_catalog:
         search_query = st.text_input("🔍 Search products...", "", key="search_prod")
         
-        # Category Filter Row (Tightly Grouped)
+        # Category Filter Row (Ultra-Tight)
         cat_c1, cat_c2, cat_c3, cat_c4, cat_c5 = st.columns(5)
         if "selected_cat" not in st.session_state:
             st.session_state.selected_cat = "All"
