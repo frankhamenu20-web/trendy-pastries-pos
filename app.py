@@ -30,7 +30,7 @@ def get_logo_base64():
 
 logo_b64 = get_logo_base64()
 
-# --- CUSTOM MOBILE-FRIENDLY DARK STYLING ---
+# --- CUSTOM MOBILE-FRIENDLY HORIZONTAL BUTTON & DARK STYLING ---
 st.markdown("""
     <style>
     .stApp {
@@ -42,14 +42,21 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
+    /* Force columns to stay horizontal on mobile screens */
+    [data-testid="column"] {
+        flex: 1 !important;
+        min-width: 70px !important;
+    }
+
     .stButton>button {
         background-color: #f59e0b;
         color: #0f172a;
         font-weight: 800;
-        border-radius: 10px;
+        border-radius: 8px;
         border: none;
-        padding: 0.6rem 1rem;
+        padding: 0.5rem 0.2rem;
         width: 100%;
+        font-size: 13px;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
     }
@@ -96,28 +103,32 @@ if 'admin_authenticated' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP NAVIGATION HEADER WITH EXACT LOGO ---
-header_col1, header_col2 = st.columns([2, 5])
+# --- TOP NAVIGATION HEADER (Horizontal on Mobile & Desktop) ---
+header_col1, header_col2, header_col3, header_col4 = st.columns([2, 1, 1, 1])
+
 with header_col1:
     if logo_b64:
         st.markdown(f"""
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; border: 1px solid #f59e0b;">
-                <span style="font-weight: bold; font-size: 15px; color: #f59e0b;">Trendy Pastries</span>
+            <div style="display: flex; align-items: center; gap: 6px; padding-top: 4px;">
+                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 32px; height: 32px; border-radius: 6px; object-fit: cover; border: 1px solid #f59e0b;">
+                <span style="font-weight: bold; font-size: 13px; color: #f59e0b; white-space: nowrap;">Trendy Pastries</span>
             </div>
         """, unsafe_allow_html=True)
     else:
-        st.markdown("### 🥐 <span style='color: #f59e0b;'>Trendy Pastries</span>", unsafe_allow_html=True)
+        st.markdown("🥐 **Trendy**", unsafe_allow_html=True)
 
 with header_col2:
-    n1, n2, n3 = st.columns(3)
-    if n1.button("🛒 POS", key="nav_pos"):
+    if st.button("🛒 POS", key="nav_pos"):
         st.session_state.active_tab = "pos"
         st.rerun()
-    if n2.button("📊 Analytics", key="nav_dash"):
+
+with header_col3:
+    if st.button("📊 Stats", key="nav_dash"):
         st.session_state.active_tab = "dashboard"
         st.rerun()
-    if n3.button("⚙️ Admin", key="nav_admin"):
+
+with header_col4:
+    if st.button("⚙️ Admin", key="nav_admin"):
         st.session_state.active_tab = "admin"
         st.rerun()
 
