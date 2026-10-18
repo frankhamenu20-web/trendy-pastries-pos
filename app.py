@@ -30,30 +30,43 @@ def get_logo_base64():
 
 logo_b64 = get_logo_base64()
 
-# --- MOBILE APP BAR STYLING (WHATSAPP/TELEGRAM STYLE) ---
+# --- MOBILE PORTRAIT FIT & RESPONSIVE STYLING ---
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #0f172a;
-        color: #f8fafc;
+    /* Prevent horizontal page overflow on mobile portrait screens */
+    html, body, [data-testid="stAppViewContainer"], .stApp {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        background-color: #0f172a !important;
+        color: #f8fafc !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
+    
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* FORCE HORIZONTAL APP BAR LAYOUT */
+    /* Tighten main container padding for mobile screens */
+    .block-container {
+        padding-left: 0.6rem !important;
+        padding-right: 0.6rem !important;
+        padding-top: 1rem !important;
+        max-width: 100% !important;
+    }
+
+    /* WhatsApp/Telegram Style Bottom/Top Navigation Bar */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 4px !important;
+        gap: 2px !important;
         background-color: #1e293b;
-        padding: 6px 8px;
-        border-radius: 16px;
+        padding: 6px 4px;
+        border-radius: 14px;
         border: 1px solid #334155;
+        width: 100% !important;
     }
     
     [data-testid="column"] {
@@ -62,15 +75,15 @@ st.markdown("""
         padding: 0px !important;
     }
 
-    /* Sleek App Bar Buttons */
+    /* Compact Sleek Buttons */
     .stButton>button {
         background-color: transparent !important;
         color: #94a3b8 !important;
-        font-weight: 600;
-        border-radius: 12px;
+        font-weight: 700;
+        border-radius: 10px;
         border: none;
-        padding: 0.4rem 0.2rem !important;
-        font-size: 12px;
+        padding: 0.35rem 0.1rem !important;
+        font-size: 11px;
         width: 100%;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
@@ -79,14 +92,21 @@ st.markdown("""
     }
     
     .stButton>button:hover {
-        background-color: rgba(245, 158, 11, 0.1) !important;
+        background-color: rgba(245, 158, 11, 0.15) !important;
         color: #f59e0b !important;
     }
 
+    /* Container Styling */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #1e293b !important;
         border: 1px solid #334155 !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
+        padding: 0.3rem !important;
+    }
+
+    /* Make text elements scale gracefully */
+    p, span, label, div {
+        word-break: break-word;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -122,7 +142,7 @@ if 'admin_authenticated' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP MOBILE NAVIGATION BAR (Inline Pill Layout) ---
+# --- TOP NAVIGATION BAR (Fitted to Screen Width) ---
 nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
 
 with nav_col1:
@@ -143,14 +163,14 @@ with nav_col3:
 with nav_col4:
     if logo_b64:
         st.markdown(f"""
-            <div style="display: flex; justify-content: center; align-items: center; padding-top: 4px;">
-                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b;">
+            <div style="display: flex; justify-content: center; align-items: center; padding-top: 2px;">
+                <img src="data:image/jpeg;base64,{logo_b64}" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 2px solid #f59e0b;">
             </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown("🥐", unsafe_allow_html=True)
 
-st.markdown("<div style='margin-bottom: 10px;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
 # ==========================================
 # VIEW 1: POS TERMINAL
@@ -161,7 +181,7 @@ if st.session_state.active_tab == "pos":
     with col_catalog:
         search_query = st.text_input("🔍 Search products...", "", key="search_prod")
         
-        # Category Filter Row (Tightly Grouped Horizontal)
+        # Category Filter Row (Fitted Horizontally)
         cat_c1, cat_c2, cat_c3, cat_c4, cat_c5 = st.columns(5)
         if "selected_cat" not in st.session_state:
             st.session_state.selected_cat = "All"
