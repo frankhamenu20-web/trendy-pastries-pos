@@ -16,7 +16,7 @@ except:
 st.set_page_config(
     page_title="Trendy Pastries and Bakery - Executive POS",
     page_icon=favicon,
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed"
 )
 
@@ -33,7 +33,6 @@ logo_b64 = get_logo_base64()
 # --- MOBILE PORTRAIT FIT & RESPONSIVE STYLING ---
 st.markdown("""
     <style>
-    /* Prevent horizontal page overflow on mobile portrait screens */
     html, body, [data-testid="stAppViewContainer"], .stApp {
         max-width: 100vw !important;
         overflow-x: hidden !important;
@@ -46,27 +45,25 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Tighten main container padding for mobile screens */
     .block-container {
-        padding-left: 0.6rem !important;
-        padding-right: 0.6rem !important;
-        padding-top: 1rem !important;
-        max-width: 100% !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        padding-top: 0.8rem !important;
+        max-width: 600px !important;
     }
 
-    /* WhatsApp/Telegram Style Bottom/Top Navigation Bar */
+    /* Top Navigation Bar */
     [data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
         justify-content: space-between !important;
-        gap: 2px !important;
+        gap: 4px !important;
         background-color: #1e293b;
-        padding: 6px 4px;
-        border-radius: 14px;
+        padding: 6px;
+        border-radius: 12px;
         border: 1px solid #334155;
-        width: 100% !important;
     }
     
     [data-testid="column"] {
@@ -75,38 +72,29 @@ st.markdown("""
         padding: 0px !important;
     }
 
-    /* Compact Sleek Buttons */
+    /* Button Styling */
     .stButton>button {
-        background-color: transparent !important;
-        color: #94a3b8 !important;
-        font-weight: 700;
-        border-radius: 10px;
+        background-color: #f59e0b;
+        color: #0f172a;
+        font-weight: 800;
+        border-radius: 8px;
         border: none;
-        padding: 0.35rem 0.1rem !important;
+        padding: 0.4rem 0.2rem !important;
         font-size: 11px;
         width: 100%;
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
         white-space: nowrap !important;
-        transition: all 0.2s ease;
     }
     
     .stButton>button:hover {
-        background-color: rgba(245, 158, 11, 0.15) !important;
-        color: #f59e0b !important;
+        background-color: #fbbf24 !important;
     }
 
-    /* Container Styling */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         background-color: #1e293b !important;
         border: 1px solid #334155 !important;
         border-radius: 10px !important;
-        padding: 0.3rem !important;
-    }
-
-    /* Make text elements scale gracefully */
-    p, span, label, div {
-        word-break: break-word;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -142,21 +130,21 @@ if 'admin_authenticated' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP NAVIGATION BAR (Fitted to Screen Width) ---
+# --- TOP NAVIGATION BAR (As sketched: Pos, Stats, Admin, Logo) ---
 nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
 
 with nav_col1:
-    if st.button("🛒 POS", key="nav_pos"):
+    if st.button("Pos", key="nav_pos"):
         st.session_state.active_tab = "pos"
         st.rerun()
 
 with nav_col2:
-    if st.button("📊 Stats", key="nav_dash"):
+    if st.button("Stats", key="nav_dash"):
         st.session_state.active_tab = "dashboard"
         st.rerun()
 
 with nav_col3:
-    if st.button("⚙️ Admin", key="nav_admin"):
+    if st.button("Admin", key="nav_admin"):
         st.session_state.active_tab = "admin"
         st.rerun()
 
@@ -173,143 +161,147 @@ with nav_col4:
 st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
 
 # ==========================================
-# VIEW 1: POS TERMINAL
+# VIEW 1: POS TERMINAL (Single Column Stacked Layout)
 # ==========================================
 if st.session_state.active_tab == "pos":
-    col_catalog, col_cart = st.columns([3, 2])
-
-    with col_catalog:
-        search_query = st.text_input("🔍 Search products...", "", key="search_prod")
+    
+    # 1. Search Bar
+    search_query = st.text_input("🔍 search products", "", key="search_prod")
+    
+    # 2. Category Filter Row (All, Pastries, Cakes, Breads, Drinks)
+    cat_c1, cat_c2, cat_c3, cat_c4, cat_c5 = st.columns(5)
+    if "selected_cat" not in st.session_state:
+        st.session_state.selected_cat = "All"
         
-        # Category Filter Row (Fitted Horizontally)
-        cat_c1, cat_c2, cat_c3, cat_c4, cat_c5 = st.columns(5)
-        if "selected_cat" not in st.session_state:
-            st.session_state.selected_cat = "All"
-            
-        if cat_c1.button("All", key="cat_all"): st.session_state.selected_cat = "All"; st.rerun()
-        if cat_c2.button("Pastries", key="cat_pas"): st.session_state.selected_cat = "Pastries"; st.rerun()
-        if cat_c3.button("Cakes", key="cat_cak"): st.session_state.selected_cat = "Cakes"; st.rerun()
-        if cat_c4.button("Breads", key="cat_brd"): st.session_state.selected_cat = "Breads"; st.rerun()
-        if cat_c5.button("Drinks", key="cat_drk"): st.session_state.selected_cat = "Drinks"; st.rerun()
+    if cat_c1.button("All", key="cat_all"): st.session_state.selected_cat = "All"; st.rerun()
+    if cat_c2.button("Pastries", key="cat_pas"): st.session_state.selected_cat = "Pastries"; st.rerun()
+    if cat_c3.button("Cakes", key="cat_cak"): st.session_state.selected_cat = "Cakes"; st.rerun()
+    if cat_c4.button("Breads", key="cat_brd"): st.session_state.selected_cat = "Breads"; st.rerun()
+    if cat_c5.button("Drinks", key="cat_drk"): st.session_state.selected_cat = "Drinks"; st.rerun()
 
-        filtered = st.session_state.products
-        if st.session_state.selected_cat != "All":
-            filtered = [p for p in filtered if p["category"] == st.session_state.selected_cat]
-        if search_query:
-            filtered = [p for p in filtered if search_query.lower() in p["name"].lower()]
+    st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
 
-        grid_cols = st.columns(2)
-        for idx, prod in enumerate(filtered):
-            with grid_cols[idx % 2]:
-                with st.container(border=True):
-                    try:
-                        st.image(prod['image'], use_container_width=True)
-                    except:
-                        st.write("🥐")
-                    st.markdown(f"**{prod['name']}**")
-                    st.markdown(f"**GH₵ {prod['price']:.2f}** | Stock: {prod['stock']}")
-                    if st.button(f"Add 🛒", key=f"add_cart_{prod['id']}"):
-                        if prod['stock'] > 0:
-                            exist = next((item for item in st.session_state.cart if item["id"] == prod["id"]), None)
-                            if exist:
-                                if exist["qty"] < prod['stock']:
-                                    exist["qty"] += 1
-                            else:
-                                st.session_state.cart.append({**prod, "qty": 1})
-                            st.rerun()
+    filtered = st.session_state.products
+    if st.session_state.selected_cat != "All":
+        filtered = [p for p in filtered if p["category"] == st.session_state.selected_cat]
+    if search_query:
+        filtered = [p for p in filtered if search_query.lower() in p["name"].lower()]
+
+    # 3. Product Grid (2 columns as sketched)
+    grid_cols = st.columns(2)
+    for idx, prod in enumerate(filtered):
+        with grid_cols[idx % 2]:
+            with st.container(border=True):
+                try:
+                    st.image(prod['image'], use_container_width=True)
+                except:
+                    st.write("🥐")
+                st.markdown(f"**{prod['name']}**")
+                st.markdown(f"GH₵ {prod['price']:.2f}")
+                if st.button(f"Add", key=f"add_cart_{prod['id']}"):
+                    if prod['stock'] > 0:
+                        exist = next((item for item in st.session_state.cart if item["id"] == prod["id"]), None)
+                        if exist:
+                            if exist["qty"] < prod['stock']:
+                                exist["qty"] += 1
                         else:
-                            st.error("Out of stock!")
+                            st.session_state.cart.append({**prod, "qty": 1})
+                        st.rerun()
+                    else:
+                        st.error("Out of stock!")
 
-    with col_cart:
-        st.markdown("#### 🛒 Current Order")
-        
-        if not st.session_state.cart:
-            st.info("No items in cart.")
-        else:
-            subtotal = 0.0
-            for item in st.session_state.cart:
-                item_total = item['price'] * item['qty']
-                subtotal += item_total
-                
-                cc1, cc2, cc3 = st.columns([3, 2, 1])
-                cc1.markdown(f"**{item['name']}**")
-                cc2.write(f"{item['qty']}x GH₵{item['price']:.2f}")
-                if cc3.button("❌", key=f"rem_{item['id']}"):
-                    st.session_state.cart = [i for i in st.session_state.cart if i["id"] != item["id"]]
-                    st.rerun()
+    st.divider()
 
-            st.divider()
-            discount_pct = st.number_input("Discount (%)", min_value=0, max_value=100, value=0, key="disc_input")
-            discounted_subtotal = subtotal * (1 - discount_pct / 100)
-            tax = discounted_subtotal * 0.08
-            total = discounted_subtotal + tax
-
-            st.write(f"Subtotal: GH₵ {subtotal:.2f}")
-            st.write(f"Tax (8%): GH₵ {tax:.2f}")
-            st.markdown(f"### Total: GH₵ {total:.2f}")
-
-            if st.button("Clear Cart", key="clear_cart_btn"):
-                st.session_state.cart = []
+    # 4. Current Order / Cart Section (Directly underneath as sketched)
+    st.markdown("### Current Order")
+    
+    if not st.session_state.cart:
+        st.info("No items in cart")
+    else:
+        subtotal = 0.0
+        for item in st.session_state.cart:
+            item_total = item['price'] * item['qty']
+            subtotal += item_total
+            
+            cc1, cc2, cc3 = st.columns([3, 2, 1])
+            cc1.markdown(f"**{item['name']}**")
+            cc2.write(f"{item['qty']}x GH₵{item['price']:.2f}")
+            if cc3.button("❌", key=f"rem_{item['id']}"):
+                st.session_state.cart = [i for i in st.session_state.cart if i["id"] != item["id"]]
                 st.rerun()
 
-            st.divider()
-            st.markdown("#### Select Payment Channel")
-            payment_method = st.radio(
-                "Payment Method", 
-                ["MTN MoMo", "Telecel Cash", "AT Money", "Bank Card"]
-            )
+        st.divider()
+        discount_pct = st.number_input("Discount (%)", min_value=0, max_value=100, value=0, key="disc_input")
+        discounted_subtotal = subtotal * (1 - discount_pct / 100)
+        tax = discounted_subtotal * 0.08
+        total = discounted_subtotal + tax
 
-            customer_email = st.text_input("Customer Email for Receipt", value="customer@trendypastries.com")
+        st.write(f"Subtotal: GH₵ {subtotal:.2f}")
+        st.write(f"Tax (8%): GH₵ {tax:.2f}")
+        st.markdown(f"### Total: GH₵ {total:.2f}")
 
-            if not st.session_state.paystack_secret:
-                st.warning("⚠️ Please save your Paystack Secret Key in the **Admin** settings to process payments.")
-            else:
-                if st.button(f"Initiate {payment_method} Payment via Paystack 💳", key="paystack_init_btn"):
-                    channel_map = {
-                        "MTN MoMo": ["mobile_money"],
-                        "Telecel Cash": ["mobile_money"],
-                        "AT Money": ["mobile_money"],
-                        "Bank Card": ["card"]
-                    }
-                    
-                    url = "https://api.paystack.co/transaction/initialize"
-                    headers = {
-                        "Authorization": f"Bearer {st.session_state.paystack_secret}",
-                        "Content-Type": "application/json"
-                    }
-                    payload = {
-                        "email": customer_email,
-                        "amount": int(total * 100),
-                        "currency": "GHS",
-                        "channels": channel_map.get(payment_method, ["card", "mobile_money"])
-                    }
-                    
-                    try:
-                        response = requests.post(url, json=payload, headers=headers)
-                        res_data = response.json()
-                        if res_data.get("status"):
-                            checkout_url = res_data["data"]["authorization_url"]
-                            st.success(f"Paystack request generated successfully for {payment_method}!")
-                            st.markdown(f"👉 **[Click Here to Pay GH₵ {total:.2f} via {payment_method}]({checkout_url})**", unsafe_allow_html=True)
-                            
-                            for cart_item in st.session_state.cart:
-                                for p in st.session_state.products:
-                                    if p["id"] == cart_item["id"]:
-                                        p["stock"] = max(0, p["stock"] - cart_item["qty"])
+        if st.button("Clear Cart", key="clear_cart_btn"):
+            st.session_state.cart = []
+            st.rerun()
 
-                            order = {
-                                "id": f"TPB-{1000 + len(st.session_state.sales_history) + 1}",
-                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                "items": list(st.session_state.cart),
-                                "subtotal": subtotal,
-                                "total": total,
-                                "method": payment_method
-                            }
-                            st.session_state.sales_history.insert(0, order)
-                        else:
-                            st.error(f"Paystack Error: {res_data.get('message', 'Initialization failed')}")
-                    except Exception as e:
-                        st.error(f"Connection error: {e}")
+        st.divider()
+        st.markdown("#### Select Payment Channel")
+        payment_method = st.radio(
+            "Payment Method", 
+            ["MTN MoMo", "Telecel Cash", "AT Money", "Bank Card"]
+        )
+
+        customer_email = st.text_input("Customer Email for Receipt", value="customer@trendypastries.com")
+
+        if not st.session_state.paystack_secret:
+            st.warning("⚠️ Please save your Paystack Secret Key in the **Admin** settings to process payments.")
+        else:
+            if st.button(f"Initiate {payment_method} Payment via Paystack 💳", key="paystack_init_btn"):
+                channel_map = {
+                    "MTN MoMo": ["mobile_money"],
+                    "Telecel Cash": ["mobile_money"],
+                    "AT Money": ["mobile_money"],
+                    "Bank Card": ["card"]
+                }
+                
+                url = "https://api.paystack.co/transaction/initialize"
+                headers = {
+                    "Authorization": f"Bearer {st.session_state.paystack_secret}",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "email": customer_email,
+                    "amount": int(total * 100),
+                    "currency": "GHS",
+                    "channels": channel_map.get(payment_method, ["card", "mobile_money"])
+                }
+                
+                try:
+                    response = requests.post(url, json=payload, headers=headers)
+                    res_data = response.json()
+                    if res_data.get("status"):
+                        checkout_url = res_data["data"]["authorization_url"]
+                        st.success(f"Paystack request generated successfully for {payment_method}!")
+                        st.markdown(f"👉 **[Click Here to Pay GH₵ {total:.2f} via {payment_method}]({checkout_url})**", unsafe_allow_html=True)
+                        
+                        for cart_item in st.session_state.cart:
+                            for p in st.session_state.products:
+                                if p["id"] == cart_item["id"]:
+                                    p["stock"] = max(0, p["stock"] - cart_item["qty"])
+
+                        order = {
+                            "id": f"TPB-{1000 + len(st.session_state.sales_history) + 1}",
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "items": list(st.session_state.cart),
+                            "subtotal": subtotal,
+                            "total": total,
+                            "method": payment_method
+                        }
+                        st.session_state.sales_history.insert(0, order)
+                    else:
+                        st.error(f"Paystack Error: {res_data.get('message', 'Initialization failed')}")
+                except Exception as e:
+                    st.error(f"Connection error: {e}")
 
 # ==========================================
 # VIEW 2: CEO FINANCIAL DASHBOARD & ANALYTICS (PIN PROTECTED)
