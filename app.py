@@ -80,8 +80,11 @@ if 'ceo_pin' not in st.session_state:
 if 'paystack_secret' not in st.session_state:
     st.session_state.paystack_secret = ""
 
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
+if 'dashboard_authenticated' not in st.session_state:
+    st.session_state.dashboard_authenticated = False
+
+if 'admin_authenticated' not in st.session_state:
+    st.session_state.admin_authenticated = False
 
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
@@ -257,18 +260,18 @@ if st.session_state.active_tab == "pos":
 elif st.session_state.active_tab == "dashboard":
     st.markdown("## 📊 CEO Financial Dashboard & Analytics")
 
-    if not st.session_state.authenticated:
+    if not st.session_state.dashboard_authenticated:
         st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock analytics and dashboard.")
         pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password", key="dash_pin_box")
         if st.button("Unlock Dashboard", key="unlock_dash_btn"):
             if pin_entered == st.session_state.ceo_pin:
-                st.session_state.authenticated = True
+                st.session_state.dashboard_authenticated = True
                 st.rerun()
             else:
                 st.error("Incorrect PIN.")
     else:
         if st.button("Lock Dashboard", key="lock_dash_btn"):
-            st.session_state.authenticated = False
+            st.session_state.dashboard_authenticated = False
             st.rerun()
 
         sales = st.session_state.sales_history
@@ -296,68 +299,82 @@ elif st.session_state.active_tab == "dashboard":
             st.info("No sales recorded yet.")
 
 # ==========================================
-# VIEW 3: CEO ADMIN & SETTINGS (Unified PIN & Inventory)
+# VIEW 3: CEO ADMIN & SETTINGS (PIN PROTECTED)
 # ==========================================
 elif st.session_state.active_tab == "admin":
     st.markdown("## ⚙️ CEO Management Settings")
 
-    admin_tab1, admin_tab2, admin_tab3 = st.tabs(["💳 Paystack Gateway", "📦 Product Inventory", "🔑 Security PIN"])
-
-    with admin_tab1:
-        st.markdown("### Paystack API Configuration")
-        st.caption("Paste your Paystack Secret Key (starts with sk_test_ or sk_live_).")
-        
-        paystack_input = st.text_input("Paystack Secret Key", value=st.session_state.paystack_secret, type="password", key="pay_secret_box")
-        if st.button("Save Paystack Key", key="save_paystack_key"):
-            st.session_state.paystack_secret = paystack_input
-            st.success("Paystack Secret Key saved successfully!")
-
-    with admin_tab2:
-        st.markdown("### Add New Product")
-        with st.form("add_product_form"):
-            p_name = st.text_input("Product Name")
-            p_cat = st.selectbox("Category", ["Pastries", "Cakes", "Breads", "Drinks"])
-            p_cost = st.number_input("Cost Price (GH₵)", min_value=0.0, value=5.0)
-            p_price = st.number_input("Selling Price (GH₵)", min_value=0.0, value=15.0)
-            p_stock = st.number_input("Stock Quantity", min_value=1, value=20)
-            p_img = st.text_input("Image URL", value="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300")
-            
-            submitted = st.form_submit_button("Save Product")
-            if submitted and p_name:
-                new_item = {
-                    "id": len(st.session_state.products) + 100,
-                    "name": p_name,
-                    "cost": p_cost,
-                    "price": p_price,
-                    "category": p_cat,
-                    "stock": p_stock,
-                    "image": p_img
-                }
-                st.session_state.products.append(new_item)
-                st.success(f"Added {p_name} to menu!")
+    if not st.session_state.admin_authenticated:
+        st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock admin settings.")
+        admin_pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password", key="admin_pin_box")
+        if st.button("Unlock Admin Settings", key="unlock_admin_btn"):
+            if admin_pin_entered == st.session_state.ceo_pin:
+                st.session_state.admin_authenticated = True
                 st.rerun()
-
-        st.divider()
-        st.markdown("### Existing Products (Delete)")
-        for p in list(st.session_state.products):
-            d_col1, d_col2, d_col3 = st.columns([3, 2, 1])
-            d_col1.markdown(f"**{p['name']}** ({p['category']})")
-            d_col2.write(f"GH₵ {p['price']:.2f}")
-            if d_col3.button("Delete 🗑️", key=f"del_prod_{p['id']}"):
-                st.session_state.products = [prod for prod in st.session_state.products if prod["id"] != p["id"]]
-                st.rerun()
-
-    with admin_tab3:
-        st.markdown("### Change CEO PIN")
-        old_pin = st.text_input("Current PIN", type="password", key="old_pin_box")
-        new_pin = st.text_input("New PIN (Min 4 digits)", type="password", key="new_pin_box")
-        
-        if st.button("Update PIN", key="save_pin_btn"):
-            if old_pin == st.session_state.ceo_pin:
-                if len(new_pin) >= 4:
-                    st.session_state.ceo_pin = new_pin
-                    st.success("CEO PIN updated successfully!")
-                else:
-                    st.error("PIN must be at least 4 digits.")
             else:
-                st.error("Current PIN is incorrect.")
+                st.error("Incorrect PIN.")
+    else:
+        if st.button("Lock Admin Settings", key="lock_admin_btn"):
+            st.session_state.admin_authenticated = False
+            st.rerun()
+
+        admin_tab1, admin_tab2, admin_tab3 = st.tabs(["💳 Paystack Gateway", "📦 Product Inventory", "🔑 Security PIN"])
+
+        with admin_tab1:
+            st.markdown("### Paystack API Configuration")
+            st.caption("Paste your Paystack Secret Key (starts with sk_test_ or sk_live_).")
+            
+            paystack_input = st.text_input("Paystack Secret Key", value=st.session_state.paystack_secret, type="password", key="pay_secret_box")
+            if st.button("Save Paystack Key", key="save_paystack_key"):
+                st.session_state.paystack_secret = paystack_input
+                st.success("Paystack Secret Key saved successfully!")
+
+        with admin_tab2:
+            st.markdown("### Add New Product")
+            with st.form("add_product_form"):
+                p_name = st.text_input("Product Name")
+                p_cat = st.selectbox("Category", ["Pastries", "Cakes", "Breads", "Drinks"])
+                p_cost = st.number_input("Cost Price (GH₵)", min_value=0.0, value=5.0)
+                p_price = st.number_input("Selling Price (GH₵)", min_value=0.0, value=15.0)
+                p_stock = st.number_input("Stock Quantity", min_value=1, value=20)
+                p_img = st.text_input("Image URL", value="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300")
+                
+                submitted = st.form_submit_button("Save Product")
+                if submitted and p_name:
+                    new_item = {
+                        "id": len(st.session_state.products) + 100,
+                        "name": p_name,
+                        "cost": p_cost,
+                        "price": p_price,
+                        "category": p_cat,
+                        "stock": p_stock,
+                        "image": p_img
+                    }
+                    st.session_state.products.append(new_item)
+                    st.success(f"Added {p_name} to menu!")
+                    st.rerun()
+
+            st.divider()
+            st.markdown("### Existing Products (Delete)")
+            for p in list(st.session_state.products):
+                d_col1, d_col2, d_col3 = st.columns([3, 2, 1])
+                d_col1.markdown(f"**{p['name']}** ({p['category']})")
+                d_col2.write(f"GH₵ {p['price']:.2f}")
+                if d_col3.button("Delete 🗑️", key=f"del_prod_{p['id']}"):
+                    st.session_state.products = [prod for prod in st.session_state.products if prod["id"] != p["id"]]
+                    st.rerun()
+
+        with admin_tab3:
+            st.markdown("### Change CEO PIN")
+            old_pin = st.text_input("Current PIN", type="password", key="old_pin_box")
+            new_pin = st.text_input("New PIN (Min 4 digits)", type="password", key="new_pin_box")
+            
+            if st.button("Update PIN", key="save_pin_btn"):
+                if old_pin == st.session_state.ceo_pin:
+                    if len(new_pin) >= 4:
+                        st.session_state.ceo_pin = new_pin
+                        st.success("CEO PIN updated successfully!")
+                    else:
+                        st.error("PIN must be at least 4 digits.")
+                else:
+                    st.error("Current PIN is incorrect.")
