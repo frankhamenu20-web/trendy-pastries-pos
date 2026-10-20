@@ -144,10 +144,10 @@ st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
 # ==========================================
 if st.session_state.active_tab == "pos":
     
-    # Search Bar matching screenshot placeholder
+    # Search Bar
     search_query = st.text_input("🔍 Search pastries, cakes, breads...", "", key="search_prod")
     
-    # Category Filter Pills (All Items, Pastries, Cakes, Breads, Drinks)
+    # Category Filter Pills
     cat_c1, cat_c2, cat_c3, cat_c4, cat_c5 = st.columns(5)
     if "selected_cat" not in st.session_state:
         st.session_state.selected_cat = "All Items"
@@ -166,7 +166,7 @@ if st.session_state.active_tab == "pos":
     if search_query:
         filtered = [p for p in filtered if search_query.lower() in p["name"].lower()]
 
-    # Product Catalog Grid (2 columns matching screenshot)
+    # Product Catalog Grid (2 columns)
     grid_cols = st.columns(2)
     for idx, prod in enumerate(filtered):
         with grid_cols[idx % 2]:
@@ -373,10 +373,20 @@ elif st.session_state.active_tab == "admin":
                 p_cost = st.number_input("Cost Price (GH₵)", min_value=0.0, value=5.0)
                 p_price = st.number_input("Selling Price (GH₵)", min_value=0.0, value=15.0)
                 p_stock = st.number_input("Stock Quantity", min_value=1, value=20)
-                p_img = st.text_input("Image URL", value="https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300")
+                
+                # DIRECT IMAGE FILE UPLOAD FROM PHONE
+                uploaded_file = st.file_uploader("Upload Product Image from Phone 📸", type=["jpg", "jpeg", "png", "webp"])
                 
                 submitted = st.form_submit_button("Save Product")
                 if submitted and p_name:
+                    image_data_url = "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300"
+                    
+                    if uploaded_file is not None:
+                        bytes_data = uploaded_file.getvalue()
+                        b64_img = base64.b64encode(bytes_data).decode()
+                        mime_type = uploaded_file.type
+                        image_data_url = f"data:{mime_type};base64,{b64_img}"
+                        
                     new_item = {
                         "id": len(st.session_state.products) + 100,
                         "name": p_name,
@@ -384,7 +394,7 @@ elif st.session_state.active_tab == "admin":
                         "price": p_price,
                         "category": p_cat,
                         "stock": p_stock,
-                        "image": p_img
+                        "image": image_data_url
                     }
                     st.session_state.products.append(new_item)
                     st.success(f"Added {p_name}!")
@@ -417,7 +427,7 @@ elif st.session_state.active_tab == "admin":
 
 st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
 
-# --- BOTTOM NAVIGATION BAR (Matching Screenshot Layout) ---
+# --- BOTTOM NAVIGATION BAR ---
 bot_c1, bot_c2 = st.columns(2)
 with bot_c1:
     if st.button("🛒 POS", key="nav_bot_pos"):
