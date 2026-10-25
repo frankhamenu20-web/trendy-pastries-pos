@@ -5,6 +5,7 @@ import requests
 import base64
 import os
 from PIL import Image
+from supabase import create_client, Client
 
 # --- LOAD CUSTOM LOGO FOR BROWSER TAB (FAVICON) ---
 try:
@@ -29,6 +30,18 @@ def get_logo_base64():
     return None
 
 logo_b64 = get_logo_base64()
+
+# --- CONNECT TO SUPABASE CLOUD DATABASE ---
+@st.cache_resource
+def init_supabase():
+    try:
+        url = st.secrets["supabase"]["url"]
+        key = st.secrets["supabase"]["key"]
+        return create_client(url, key)
+    except Exception as e:
+        return None
+
+supabase = init_supabase()
 
 # --- NETLIFY-INSPIRED DARK MOBILE UI STYLING ---
 st.markdown("""
@@ -82,21 +95,45 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- INITIALIZE SESSION STATE DATA ---
+# --- LOAD OR INITIALIZE PRODUCTS FROM SUPABASE ---
 if 'products' not in st.session_state:
-    st.session_state.products = [
-        {"id": 1, "name": "Meat Pie (Beef)", "cost": 7.00, "price": 15.00, "category": "Pastries", "stock": 25, "image": "https://images.unsplash.com/photo-1621996346565-e3d5d6281273?w=300&auto=format&fit=crop&q=80"},
-        {"id": 2, "name": "Chicken Pie", "cost": 9.00, "price": 18.00, "category": "Pastries", "stock": 20, "image": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80"},
-        {"id": 3, "name": "Red Velvet Slice", "cost": 15.00, "price": 35.00, "category": "Cakes", "stock": 10, "image": "https://images.unsplash.com/photo-1586788680434-30d324b2d46f?w=300&auto=format&fit=crop&q=80"},
-        {"id": 4, "name": "Ghana Sugar Bread", "cost": 10.00, "price": 20.00, "category": "Breads", "stock": 15, "image": "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=300&auto=format&fit=crop&q=80"},
-        {"id": 5, "name": "Fresh Sobolo", "cost": 4.00, "price": 10.00, "category": "Drinks", "stock": 40, "image": "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&auto=format&fit=crop&q=80"}
-    ]
+    if supabase:
+        try:
+            res = supabase.table("products").select("*").execute()
+            if res.data and len(res.data) > 0:
+                st.session_state.products = res.data
+            else:
+                # Seed initial products if table is empty
+                initial_products = [
+                    {"name": "Meat Pie (Beef)", "category": "Pastries", "price": 15.00, "stock": 25, "image": "https://images.unsplash.com/photo-1621996346565-e3d5d6281273?w=300&auto=format&fit=crop&q=80"},
+                    {"name": "Chicken Pie", "category": "Pastries", "price": 18.00, "stock": 20, "image": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80"},
+                    {"name": "Red Velvet Slice", "category": "Cakes", "price": 35.00, "stock": 10, "image": "https://images.unsplash.com/photo-1586788680434-30d324b2d46f?w=300&auto=format&fit=crop&q=80"},
+                    {"name": "Ghana Sugar Bread", "category": "Breads", "price": 20.00, "stock": 15, "image": "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=300&auto=format&fit=crop&q=80"},
+                    {"name": "Fresh Sobolo", "category": "Drinks", "price": 10.00, "stock": 40, "image": "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&auto=format&fit=crop&q=80"}
+                ]
+                for p in initial_products:
+                    supabase.table("products").insert(p).execute()
+                res = supabase.table("products").select("*").execute()
+                st.session_state.products = res.data
+        except Exception as e:
+            st.warning(f"Database connection warning: {e}. Using local fallback cache.")
+            st.session_state.products = []
+    else:
+        st.session_state.products = []
+
+# --- LOAD SALES HISTORY FROM SUPABASE ---
+if 'sales_history' not in st.session_state:
+    if supabase:
+        try:
+            res = supabase.table("sales_history").select("*").order("id", desc=True).execute()
+            st.session_state.sales_history = res.data if res.data else []
+        except:
+            st.session_state.sales_history = []
+    else:
+        st.session_state.sales_history = []
 
 if 'cart' not in st.session_state:
     st.session_state.cart = []
-
-if 'sales_history' not in st.session_state:
-    st.session_state.sales_history = []
 
 if 'ceo_pin' not in st.session_state:
     st.session_state.ceo_pin = "1234"
@@ -144,10 +181,8 @@ st.markdown("<div style='margin-bottom: 6px;'></div>", unsafe_allow_html=True)
 # ==========================================
 if st.session_state.active_tab == "pos":
     
-    # Search Bar
     search_query = st.text_input("🔍 Search pastries, cakes, breads...", "", key="search_prod")
     
-    # Category Filter Pills
     cat_c1, cat_c2, cat_c3, cat_c4, cat_c5 = st.columns(5)
     if "selected_cat" not in st.session_state:
         st.session_state.selected_cat = "All Items"
@@ -166,7 +201,6 @@ if st.session_state.active_tab == "pos":
     if search_query:
         filtered = [p for p in filtered if search_query.lower() in p["name"].lower()]
 
-    # Product Catalog Grid (2 columns)
     grid_cols = st.columns(2)
     for idx, prod in enumerate(filtered):
         with grid_cols[idx % 2]:
@@ -176,7 +210,7 @@ if st.session_state.active_tab == "pos":
                 except:
                     st.write("🥐")
                 st.markdown(f"**{prod['name']}**")
-                st.markdown(f"<span style='color: #f59e0b; font-weight: 800; font-size: 16px;'>GH₵ {prod['price']:.2f}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='color: #f59e0b; font-weight: 800; font-size: 16px;'>GH₵ {float(prod['price']):.2f}</span>", unsafe_allow_html=True)
                 st.markdown(f"<span style='color: #94a3b8; font-size: 11px;'>{prod['stock']} units left</span>", unsafe_allow_html=True)
                 
                 if st.button("Add 🛒", key=f"add_cart_{prod['id']}"):
@@ -193,7 +227,6 @@ if st.session_state.active_tab == "pos":
 
     st.divider()
 
-    # Floating/Bottom Cart Summary & Checkout
     total_cart_items = sum(item['qty'] for item in st.session_state.cart)
     if total_cart_items > 0:
         st.markdown(f"""
@@ -210,12 +243,12 @@ if st.session_state.active_tab == "pos":
     else:
         subtotal = 0.0
         for item in st.session_state.cart:
-            item_total = item['price'] * item['qty']
+            item_total = float(item['price']) * item['qty']
             subtotal += item_total
             
             cc1, cc2, cc3 = st.columns([3, 2, 1])
             cc1.markdown(f"**{item['name']}**")
-            cc2.write(f"{item['qty']}x GH₵{item['price']:.2f}")
+            cc2.write(f"{item['qty']}x GH₵{float(item['price']):.2f}")
             if cc3.button("❌", key=f"rem_{item['id']}"):
                 st.session_state.cart = [i for i in st.session_state.cart if i["id"] != item["id"]]
                 st.rerun()
@@ -250,22 +283,31 @@ if st.session_state.active_tab == "pos":
             st.markdown(f"**Change Due:** GH₵ {change_due:.2f}")
             
             if st.button("Complete Cash Sale 💵", key="complete_cash_btn"):
-                # Deduct inventory stock
+                # Update inventory stock in Supabase & session
                 for cart_item in st.session_state.cart:
+                    new_stock = max(0, cart_item["stock"] - cart_item["qty"])
                     for p in st.session_state.products:
                         if p["id"] == cart_item["id"]:
-                            p["stock"] = max(0, p["stock"] - cart_item["qty"])
+                            p["stock"] = new_stock
+                    if supabase:
+                        supabase.table("products").update({"stock": new_stock}).eq("id", cart_item["id"]).execute()
 
-                # Save transaction
-                order = {
-                    "id": f"TPB-{1000 + len(st.session_state.sales_history) + 1}",
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "items": list(st.session_state.cart),
-                    "subtotal": subtotal,
-                    "total": total,
-                    "method": "Cash"
+                # Save transaction to Supabase & session
+                order_id_str = f"TPB-{1000 + len(st.session_state.sales_history) + 1}"
+                order_record = {
+                    "order_id": order_id_str,
+                    "total_amount": float(total),
+                    "payment_method": "Cash",
+                    "items": str(st.session_state.cart)
                 }
-                st.session_state.sales_history.insert(0, order)
+                
+                if supabase:
+                    res = supabase.table("sales_history").insert(order_record).execute()
+                    if res.data:
+                        st.session_state.sales_history.insert(0, res.data[0])
+                else:
+                    st.session_state.sales_history.insert(0, {**order_record, "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+
                 st.session_state.cart = []
                 st.success("Cash transaction completed successfully!")
                 st.rerun()
@@ -304,19 +346,27 @@ if st.session_state.active_tab == "pos":
                             st.markdown(f"👉 **[Click Here to Pay GH₵ {total:.2f} via {payment_method}]({checkout_url})**", unsafe_allow_html=True)
                             
                             for cart_item in st.session_state.cart:
+                                new_stock = max(0, cart_item["stock"] - cart_item["qty"])
                                 for p in st.session_state.products:
                                     if p["id"] == cart_item["id"]:
-                                        p["stock"] = max(0, p["stock"] - cart_item["qty"])
+                                        p["stock"] = new_stock
+                                if supabase:
+                                    supabase.table("products").update({"stock": new_stock}).eq("id", cart_item["id"]).execute()
 
-                            order = {
-                                "id": f"TPB-{1000 + len(st.session_state.sales_history) + 1}",
-                                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                "items": list(st.session_state.cart),
-                                "subtotal": subtotal,
-                                "total": total,
-                                "method": payment_method
+                            order_id_str = f"TPB-{1000 + len(st.session_state.sales_history) + 1}"
+                            order_record = {
+                                "order_id": order_id_str,
+                                "total_amount": float(total),
+                                "payment_method": payment_method,
+                                "items": str(st.session_state.cart)
                             }
-                            st.session_state.sales_history.insert(0, order)
+                            
+                            if supabase:
+                                res = supabase.table("sales_history").insert(order_record).execute()
+                                if res.data:
+                                    st.session_state.sales_history.insert(0, res.data[0])
+                            else:
+                                st.session_state.sales_history.insert(0, {**order_record, "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
                         else:
                             st.error(f"Paystack Error: {res_data.get('message', 'Initialization failed')}")
                     except Exception as e:
@@ -343,7 +393,7 @@ elif st.session_state.active_tab == "dashboard":
             st.rerun()
 
         sales = st.session_state.sales_history
-        total_rev = sum(o["total"] for o in sales)
+        total_rev = sum(float(o.get("total_amount", 0)) for o in sales)
         total_orders = len(sales)
         avg_order = total_rev / total_orders if total_orders > 0 else 0
 
@@ -356,10 +406,10 @@ elif st.session_state.active_tab == "dashboard":
         st.markdown("#### Transaction Audit Trail")
         if sales:
             df_sales = pd.DataFrame([{
-                "ID": o["id"],
-                "Date": o["timestamp"],
-                "Method": o["method"],
-                "Total (GH₵)": f"{o['total']:.2f}"
+                "ID": o.get("order_id"),
+                "Date": o.get("created_at"),
+                "Method": o.get("payment_method"),
+                "Total (GH₵)": f"{float(o.get('total_amount', 0)):.2f}"
             } for o in sales])
             st.dataframe(df_sales, use_container_width=True)
         else:
@@ -399,11 +449,9 @@ elif st.session_state.active_tab == "admin":
             with st.form("add_product_form"):
                 p_name = st.text_input("Product Name")
                 p_cat = st.selectbox("Category", ["Pastries", "Cakes", "Breads", "Drinks"])
-                p_cost = st.number_input("Cost Price (GH₵)", min_value=0.0, value=5.0)
                 p_price = st.number_input("Selling Price (GH₵)", min_value=0.0, value=15.0)
                 p_stock = st.number_input("Stock Quantity", min_value=1, value=20)
                 
-                # DIRECT IMAGE FILE UPLOAD FROM PHONE
                 uploaded_file = st.file_uploader("Upload Product Image from Phone 📸", type=["jpg", "jpeg", "png", "webp"])
                 
                 submitted = st.form_submit_button("Save Product")
@@ -417,16 +465,21 @@ elif st.session_state.active_tab == "admin":
                         image_data_url = f"data:{mime_type};base64,{b64_img}"
                         
                     new_item = {
-                        "id": len(st.session_state.products) + 100,
                         "name": p_name,
-                        "cost": p_cost,
-                        "price": p_price,
                         "category": p_cat,
-                        "stock": p_stock,
+                        "price": float(p_price),
+                        "stock": int(p_stock),
                         "image": image_data_url
                     }
-                    st.session_state.products.append(new_item)
-                    st.success(f"Added {p_name}!")
+                    
+                    if supabase:
+                        res = supabase.table("products").insert(new_item).execute()
+                        if res.data:
+                            st.session_state.products.append(res.data[0])
+                    else:
+                        st.session_state.products.append(new_item)
+                        
+                    st.success(f"Added {p_name} to cloud database!")
                     st.rerun()
 
             st.divider()
@@ -434,8 +487,10 @@ elif st.session_state.active_tab == "admin":
             for p in list(st.session_state.products):
                 d_col1, d_col2, d_col3 = st.columns([3, 2, 1])
                 d_col1.markdown(f"**{p['name']}**")
-                d_col2.write(f"GH₵ {p['price']:.2f}")
+                d_col2.write(f"GH₵ {float(p['price']):.2f}")
                 if d_col3.button("Delete 🗑️", key=f"del_prod_{p['id']}"):
+                    if supabase:
+                        supabase.table("products").delete().eq("id", p["id"]).execute()
                     st.session_state.products = [prod for prod in st.session_state.products if prod["id"] != p["id"]]
                     st.rerun()
 
