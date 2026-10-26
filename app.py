@@ -95,26 +95,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- LOAD OR INITIALIZE PRODUCTS FROM SUPABASE ---
+# --- LOAD PRODUCTS FROM SUPABASE (STARTING EMPTY) ---
 if 'products' not in st.session_state:
     if supabase:
         try:
             res = supabase.table("products").select("*").execute()
-            if res.data and len(res.data) > 0:
-                st.session_state.products = res.data
-            else:
-                # Seed initial products if table is empty
-                initial_products = [
-                    {"name": "Meat Pie (Beef)", "category": "Pastries", "price": 15.00, "stock": 25, "image": "https://images.unsplash.com/photo-1621996346565-e3d5d6281273?w=300&auto=format&fit=crop&q=80"},
-                    {"name": "Chicken Pie", "category": "Pastries", "price": 18.00, "stock": 20, "image": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80"},
-                    {"name": "Red Velvet Slice", "category": "Cakes", "price": 35.00, "stock": 10, "image": "https://images.unsplash.com/photo-1586788680434-30d324b2d46f?w=300&auto=format&fit=crop&q=80"},
-                    {"name": "Ghana Sugar Bread", "category": "Breads", "price": 20.00, "stock": 15, "image": "https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=300&auto=format&fit=crop&q=80"},
-                    {"name": "Fresh Sobolo", "category": "Drinks", "price": 10.00, "stock": 40, "image": "https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=300&auto=format&fit=crop&q=80"}
-                ]
-                for p in initial_products:
-                    supabase.table("products").insert(p).execute()
-                res = supabase.table("products").select("*").execute()
-                st.session_state.products = res.data
+            st.session_state.products = res.data if res.data else []
         except Exception as e:
             st.warning(f"Database connection warning: {e}. Using local fallback cache.")
             st.session_state.products = []
@@ -201,29 +187,32 @@ if st.session_state.active_tab == "pos":
     if search_query:
         filtered = [p for p in filtered if search_query.lower() in p["name"].lower()]
 
-    grid_cols = st.columns(2)
-    for idx, prod in enumerate(filtered):
-        with grid_cols[idx % 2]:
-            with st.container(border=True):
-                try:
-                    st.image(prod['image'], use_container_width=True)
-                except:
-                    st.write("🥐")
-                st.markdown(f"**{prod['name']}**")
-                st.markdown(f"<span style='color: #f59e0b; font-weight: 800; font-size: 16px;'>GH₵ {float(prod['price']):.2f}</span>", unsafe_allow_html=True)
-                st.markdown(f"<span style='color: #94a3b8; font-size: 11px;'>{prod['stock']} units left</span>", unsafe_allow_html=True)
-                
-                if st.button("Add 🛒", key=f"add_cart_{prod['id']}"):
-                    if prod['stock'] > 0:
-                        exist = next((item for item in st.session_state.cart if item["id"] == prod["id"]), None)
-                        if exist:
-                            if exist["qty"] < prod['stock']:
-                                exist["qty"] += 1
+    if not filtered:
+        st.info("No products found. Go to **Admin** settings to add your first product!")
+    else:
+        grid_cols = st.columns(2)
+        for idx, prod in enumerate(filtered):
+            with grid_cols[idx % 2]:
+                with st.container(border=True):
+                    try:
+                        st.image(prod['image'], use_container_width=True)
+                    except:
+                        st.write("🥐")
+                    st.markdown(f"**{prod['name']}**")
+                    st.markdown(f"<span style='color: #f59e0b; font-weight: 800; font-size: 16px;'>GH₵ {float(prod['price']):.2f}</span>", unsafe_allow_html=True)
+                    st.markdown(f"<span style='color: #94a3b8; font-size: 11px;'>{prod['stock']} units left</span>", unsafe_allow_html=True)
+                    
+                    if st.button("Add 🛒", key=f"add_cart_{prod['id']}"):
+                        if prod['stock'] > 0:
+                            exist = next((item for item in st.session_state.cart if item["id"] == prod["id"]), None)
+                            if exist:
+                                if exist["qty"] < prod['stock']:
+                                    exist["qty"] += 1
+                            else:
+                                st.session_state.cart.append({**prod, "qty": 1})
+                            st.rerun()
                         else:
-                            st.session_state.cart.append({**prod, "qty": 1})
-                        st.rerun()
-                    else:
-                        st.error("Out of stock!")
+                            st.error("Out of stock!")
 
     st.divider()
 
@@ -283,7 +272,6 @@ if st.session_state.active_tab == "pos":
             st.markdown(f"**Change Due:** GH₵ {change_due:.2f}")
             
             if st.button("Complete Cash Sale 💵", key="complete_cash_btn"):
-                # Update inventory stock in Supabase & session
                 for cart_item in st.session_state.cart:
                     new_stock = max(0, cart_item["stock"] - cart_item["qty"])
                     for p in st.session_state.products:
@@ -292,7 +280,6 @@ if st.session_state.active_tab == "pos":
                     if supabase:
                         supabase.table("products").update({"stock": new_stock}).eq("id", cart_item["id"]).execute()
 
-                # Save transaction to Supabase & session
                 order_id_str = f"TPB-{1000 + len(st.session_state.sales_history) + 1}"
                 order_record = {
                     "order_id": order_id_str,
@@ -484,15 +471,18 @@ elif st.session_state.active_tab == "admin":
 
             st.divider()
             st.markdown("### Existing Products (Delete)")
-            for p in list(st.session_state.products):
-                d_col1, d_col2, d_col3 = st.columns([3, 2, 1])
-                d_col1.markdown(f"**{p['name']}**")
-                d_col2.write(f"GH₵ {float(p['price']):.2f}")
-                if d_col3.button("Delete 🗑️", key=f"del_prod_{p['id']}"):
-                    if supabase:
-                        supabase.table("products").delete().eq("id", p["id"]).execute()
-                    st.session_state.products = [prod for prod in st.session_state.products if prod["id"] != p["id"]]
-                    st.rerun()
+            if not st.session_state.products:
+                st.info("No products in inventory yet.")
+            else:
+                for p in list(st.session_state.products):
+                    d_col1, d_col2, d_col3 = st.columns([3, 2, 1])
+                    d_col1.markdown(f"**{p['name']}**")
+                    d_col2.write(f"GH₵ {float(p['price']):.2f}")
+                    if d_col3.button("Delete 🗑️", key=f"del_prod_{p['id']}"):
+                        if supabase:
+                            supabase.table("products").delete().eq("id", p["id"]).execute()
+                        st.session_state.products = [prod for prod in st.session_state.products if prod["id"] != p["id"]]
+                        st.rerun()
 
         with admin_tab3:
             st.markdown("### Change CEO PIN")
