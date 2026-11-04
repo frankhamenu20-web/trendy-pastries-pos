@@ -410,4 +410,60 @@ elif st.session_state.active_tab == "dashboard":
 elif st.session_state.active_tab == "admin":
     st.markdown("## ⚙️ CEO Management Settings")
 
-    if not
+    if not st.session_state.admin_authenticated:
+        st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock admin settings.")
+        admin_pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password", key="admin_pin_box")
+        if st.button("Unlock Admin Settings", key="unlock_admin_btn"):
+            if bcrypt.checkpw(admin_pin_entered.encode('utf-8'), st.session_state.ceo_pin_hash):
+                st.session_state.admin_authenticated = True
+                st.rerun()
+            else:
+                st.error("Incorrect PIN.")
+    else:
+        if st.button("Lock Admin Settings", key="lock_admin_btn"):
+            st.session_state.admin_authenticated = False
+            st.rerun()
+
+        admin_tab1, admin_tab2, admin_tab3 = st.tabs(["💳 Paystack", "📦 Inventory", "🔑 PIN"])
+
+        with admin_tab1:
+            st.markdown("### Paystack Configuration")
+            paystack_input = st.text_input("Paystack Secret Key", value=st.session_state.paystack_secret, type="password", key="pay_secret_box")
+            if st.button("Save Paystack Key", key="save_paystack_key"):
+                st.session_state.paystack_secret = paystack_input
+                st.success("Paystack Secret Key saved successfully!")
+
+        with admin_tab2:
+            st.markdown("### Add New Product")
+            with st.form("add_product_form"):
+                p_name = st.text_input("Product Name")
+                p_cat = st.selectbox("Category", ["Pastries", "Cakes", "Breads", "Drinks"])
+                p_price = st.number_input("Selling Price (GH₵)", min_value=0.0, value=15.0)
+                p_stock = st.number_input("Stock Quantity", min_value=1, value=20)
+                
+                uploaded_file = st.file_uploader("Upload Product Image from Phone 📸", type=["jpg", "jpeg", "png", "webp"])
+                
+                submitted = st.form_submit_button("Save Product")
+                if submitted and p_name:
+                    image_data_url = "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300"
+                    
+                    if uploaded_file is not None:
+                        bytes_data = uploaded_file.getvalue()
+                        b64_img = base64.b64encode(bytes_data).decode()
+                        mime_type = uploaded_file.type
+                        image_data_url = f"data:{mime_type};base64,{b64_img}"
+                        
+                    new_item = {
+                        "name": p_name,
+                        "category": p_cat,
+                        "price": float(p_price),
+                        "stock": int(p_stock),
+                        "image": image_data_url
+                    }
+                    
+                    if supabase:
+                        res = supabase.table("products").insert(new_item).execute()
+                        if res.data:
+                            st.session_state.products.append(res.data[0])
+                    else:
+                        st.session_state
