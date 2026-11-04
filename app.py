@@ -6,6 +6,7 @@ import base64
 import os
 from PIL import Image
 from supabase import create_client, Client
+import bcrypt
 
 # --- LOAD CUSTOM LOGO FOR BROWSER TAB (FAVICON) ---
 try:
@@ -95,7 +96,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- LOAD PRODUCTS FROM SUPABASE (STARTING EMPTY) ---
+# --- LOAD PRODUCTS FROM SUPABASE ---
 if 'products' not in st.session_state:
     if supabase:
         try:
@@ -121,8 +122,9 @@ if 'sales_history' not in st.session_state:
 if 'cart' not in st.session_state:
     st.session_state.cart = []
 
-if 'ceo_pin' not in st.session_state:
-    st.session_state.ceo_pin = "1234"
+# --- SECURE BCRYPT HASH FOR CEO PIN ("1234") ---
+if 'ceo_pin_hash' not in st.session_state:
+    st.session_state.ceo_pin_hash = b'$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8Q50e62'
 
 if 'paystack_secret' not in st.session_state:
     st.session_state.paystack_secret = ""
@@ -360,7 +362,7 @@ if st.session_state.active_tab == "pos":
                         st.error(f"Connection error: {e}")
 
 # ==========================================
-# VIEW 2: CEO FINANCIAL DASHBOARD & ANALYTICS (PIN PROTECTED)
+# VIEW 2: CEO FINANCIAL DASHBOARD & ANALYTICS (BCRYPT PROTECTED)
 # ==========================================
 elif st.session_state.active_tab == "dashboard":
     st.markdown("## 📊 CEO Financial Dashboard")
@@ -369,7 +371,7 @@ elif st.session_state.active_tab == "dashboard":
         st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock analytics.")
         pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password", key="dash_pin_box")
         if st.button("Unlock Dashboard", key="unlock_dash_btn"):
-            if pin_entered == st.session_state.ceo_pin:
+            if bcrypt.checkpw(pin_entered.encode('utf-8'), st.session_state.ceo_pin_hash):
                 st.session_state.dashboard_authenticated = True
                 st.rerun()
             else:
@@ -403,7 +405,7 @@ elif st.session_state.active_tab == "dashboard":
             st.info("No sales recorded yet.")
 
 # ==========================================
-# VIEW 3: CEO ADMIN & SETTINGS (PIN PROTECTED)
+# VIEW 3: CEO ADMIN & SETTINGS (BCRYPT PROTECTED)
 # ==========================================
 elif st.session_state.active_tab == "admin":
     st.markdown("## ⚙️ CEO Management Settings")
@@ -412,7 +414,7 @@ elif st.session_state.active_tab == "admin":
         st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock admin settings.")
         admin_pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password", key="admin_pin_box")
         if st.button("Unlock Admin Settings", key="unlock_admin_btn"):
-            if admin_pin_entered == st.session_state.ceo_pin:
+            if bcrypt.checkpw(admin_pin_entered.encode('utf-8'), st.session_state.ceo_pin_hash):
                 st.session_state.admin_authenticated = True
                 st.rerun()
             else:
@@ -490,10 +492,11 @@ elif st.session_state.active_tab == "admin":
             new_pin = st.text_input("New PIN (Min 4 digits)", type="password", key="new_pin_box")
             
             if st.button("Update PIN", key="save_pin_btn"):
-                if old_pin == st.session_state.ceo_pin:
+                if bcrypt.checkpw(old_pin.encode('utf-8'), st.session_state.ceo_pin_hash):
                     if len(new_pin) >= 4:
-                        st.session_state.ceo_pin = new_pin
-                        st.success("CEO PIN updated successfully!")
+                        salt = bcrypt.gensalt()
+                        st.session_state.ceo_pin_hash = bcrypt.hashpw(new_pin.encode('utf-8'), salt)
+                        st.success("CEO PIN updated and securely hashed successfully!")
                     else:
                         st.error("PIN must be at least 4 digits.")
                 else:
