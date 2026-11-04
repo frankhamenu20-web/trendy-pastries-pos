@@ -122,9 +122,9 @@ if 'sales_history' not in st.session_state:
 if 'cart' not in st.session_state:
     st.session_state.cart = []
 
-# --- SECURE BCRYPT HASH FOR CEO PIN ("1234") ---
+# --- SECURE BCRYPT HASH FOR CEO PIN (Forces default "1234" safely) ---
 if 'ceo_pin_hash' not in st.session_state:
-    st.session_state.ceo_pin_hash = b'$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/8Q50e62'
+    st.session_state.ceo_pin_hash = bcrypt.hashpw("1234".encode('utf-8'), bcrypt.gensalt())
 
 if 'paystack_secret' not in st.session_state:
     st.session_state.paystack_secret = ""
@@ -410,107 +410,4 @@ elif st.session_state.active_tab == "dashboard":
 elif st.session_state.active_tab == "admin":
     st.markdown("## ⚙️ CEO Management Settings")
 
-    if not st.session_state.admin_authenticated:
-        st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock admin settings.")
-        admin_pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password", key="admin_pin_box")
-        if st.button("Unlock Admin Settings", key="unlock_admin_btn"):
-            if bcrypt.checkpw(admin_pin_entered.encode('utf-8'), st.session_state.ceo_pin_hash):
-                st.session_state.admin_authenticated = True
-                st.rerun()
-            else:
-                st.error("Incorrect PIN.")
-    else:
-        if st.button("Lock Admin Settings", key="lock_admin_btn"):
-            st.session_state.admin_authenticated = False
-            st.rerun()
-
-        admin_tab1, admin_tab2, admin_tab3 = st.tabs(["💳 Paystack", "📦 Inventory", "🔑 PIN"])
-
-        with admin_tab1:
-            st.markdown("### Paystack Configuration")
-            paystack_input = st.text_input("Paystack Secret Key", value=st.session_state.paystack_secret, type="password", key="pay_secret_box")
-            if st.button("Save Paystack Key", key="save_paystack_key"):
-                st.session_state.paystack_secret = paystack_input
-                st.success("Paystack Secret Key saved successfully!")
-
-        with admin_tab2:
-            st.markdown("### Add New Product")
-            with st.form("add_product_form"):
-                p_name = st.text_input("Product Name")
-                p_cat = st.selectbox("Category", ["Pastries", "Cakes", "Breads", "Drinks"])
-                p_price = st.number_input("Selling Price (GH₵)", min_value=0.0, value=15.0)
-                p_stock = st.number_input("Stock Quantity", min_value=1, value=20)
-                
-                uploaded_file = st.file_uploader("Upload Product Image from Phone 📸", type=["jpg", "jpeg", "png", "webp"])
-                
-                submitted = st.form_submit_button("Save Product")
-                if submitted and p_name:
-                    image_data_url = "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300"
-                    
-                    if uploaded_file is not None:
-                        bytes_data = uploaded_file.getvalue()
-                        b64_img = base64.b64encode(bytes_data).decode()
-                        mime_type = uploaded_file.type
-                        image_data_url = f"data:{mime_type};base64,{b64_img}"
-                        
-                    new_item = {
-                        "name": p_name,
-                        "category": p_cat,
-                        "price": float(p_price),
-                        "stock": int(p_stock),
-                        "image": image_data_url
-                    }
-                    
-                    if supabase:
-                        res = supabase.table("products").insert(new_item).execute()
-                        if res.data:
-                            st.session_state.products.append(res.data[0])
-                    else:
-                        st.session_state.products.append(new_item)
-                        
-                    st.success(f"Added {p_name} to cloud database!")
-                    st.rerun()
-
-            st.divider()
-            st.markdown("### Existing Products (Delete)")
-            if not st.session_state.products:
-                st.info("No products in inventory yet.")
-            else:
-                for p in list(st.session_state.products):
-                    d_col1, d_col2, d_col3 = st.columns([3, 2, 1])
-                    d_col1.markdown(f"**{p['name']}**")
-                    d_col2.write(f"GH₵ {float(p['price']):.2f}")
-                    if d_col3.button("Delete 🗑️", key=f"del_prod_{p['id']}"):
-                        if supabase:
-                            supabase.table("products").delete().eq("id", p["id"]).execute()
-                        st.session_state.products = [prod for prod in st.session_state.products if prod["id"] != p["id"]]
-                        st.rerun()
-
-        with admin_tab3:
-            st.markdown("### Change CEO PIN")
-            old_pin = st.text_input("Current PIN", type="password", key="old_pin_box")
-            new_pin = st.text_input("New PIN (Min 4 digits)", type="password", key="new_pin_box")
-            
-            if st.button("Update PIN", key="save_pin_btn"):
-                if bcrypt.checkpw(old_pin.encode('utf-8'), st.session_state.ceo_pin_hash):
-                    if len(new_pin) >= 4:
-                        salt = bcrypt.gensalt()
-                        st.session_state.ceo_pin_hash = bcrypt.hashpw(new_pin.encode('utf-8'), salt)
-                        st.success("CEO PIN updated and securely hashed successfully!")
-                    else:
-                        st.error("PIN must be at least 4 digits.")
-                else:
-                    st.error("Current PIN is incorrect.")
-
-st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
-
-# --- BOTTOM NAVIGATION BAR ---
-bot_c1, bot_c2 = st.columns(2)
-with bot_c1:
-    if st.button("🛒 POS", key="nav_bot_pos"):
-        st.session_state.active_tab = "pos"
-        st.rerun()
-with bot_c2:
-    if st.button("📊 Dashboard", key="nav_bot_dash"):
-        st.session_state.active_tab = "dashboard"
-        st.rerun()
+    if not
