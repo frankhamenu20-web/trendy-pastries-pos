@@ -1,3 +1,6 @@
 streamlit
 pandas
+requests
+pillow
 supabase
+bcrypt
