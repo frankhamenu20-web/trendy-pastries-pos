@@ -7,6 +7,7 @@ import os
 from PIL import Image
 from supabase import create_client, Client
 import bcrypt
+from fpdf import FPDF
 
 # --- LOAD CUSTOM LOGO FOR BROWSER TAB (FAVICON) ---
 try:
@@ -283,11 +284,13 @@ if st.session_state.active_tab == "pos":
                         supabase.table("products").update({"stock": new_stock}).eq("id", cart_item["id"]).execute()
 
                 order_id_str = f"TPB-{1000 + len(st.session_state.sales_history) + 1}"
+                timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 order_record = {
                     "order_id": order_id_str,
                     "total_amount": float(total),
                     "payment_method": "Cash",
-                    "items": str(st.session_state.cart)
+                    "items": str(st.session_state.cart),
+                    "created_at": timestamp_str
                 }
                 
                 if supabase:
@@ -295,7 +298,7 @@ if st.session_state.active_tab == "pos":
                     if res.data:
                         st.session_state.sales_history.insert(0, res.data[0])
                 else:
-                    st.session_state.sales_history.insert(0, {**order_record, "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+                    st.session_state.sales_history.insert(0, order_record)
 
                 st.session_state.cart = []
                 st.success("Cash transaction completed successfully!")
@@ -343,11 +346,13 @@ if st.session_state.active_tab == "pos":
                                     supabase.table("products").update({"stock": new_stock}).eq("id", cart_item["id"]).execute()
 
                             order_id_str = f"TPB-{1000 + len(st.session_state.sales_history) + 1}"
+                            timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                             order_record = {
                                 "order_id": order_id_str,
                                 "total_amount": float(total),
                                 "payment_method": payment_method,
-                                "items": str(st.session_state.cart)
+                                "items": str(st.session_state.cart),
+                                "created_at": timestamp_str
                             }
                             
                             if supabase:
@@ -355,14 +360,14 @@ if st.session_state.active_tab == "pos":
                                 if res.data:
                                     st.session_state.sales_history.insert(0, res.data[0])
                             else:
-                                st.session_state.sales_history.insert(0, {**order_record, "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+                                st.session_state.sales_history.insert(0, order_record)
                         else:
                             st.error(f"Paystack Error: {res_data.get('message', 'Initialization failed')}")
                     except Exception as e:
                         st.error(f"Connection error: {e}")
 
 # ==========================================
-# VIEW 2: CEO FINANCIAL DASHBOARD & ANALYTICS (BCRYPT PROTECTED)
+# VIEW 2: CEO FINANCIAL ANALYTICS DASHBOARD
 # ==========================================
 elif st.session_state.active_tab == "dashboard":
     st.markdown("## 📈 CEO Analytics Dashboard")
@@ -382,8 +387,20 @@ elif st.session_state.active_tab == "dashboard":
             st.rerun()
 
         sales = st.session_state.sales_history
-        total_rev = sum(float(o.get("total_amount", 0)) for o in sales)
-        total_orders = len(sales)
+        
+        # Payment Method Sorting / Filtering
+        st.markdown("#### Filter Transactions by Payment Method")
+        payment_filter = st.selectbox(
+            "Select Payment Method", 
+            ["All Methods", "Cash", "MTN MoMo", "Telecel Cash", "AT Money", "Bank Card"]
+        )
+        
+        filtered_sales = sales
+        if payment_filter != "All Methods":
+            filtered_sales = [o for o in sales if o.get("payment_method") == payment_filter]
+
+        total_rev = sum(float(o.get("total_amount", 0)) for o in filtered_sales)
+        total_orders = len(filtered_sales)
         avg_order = total_rev / total_orders if total_orders > 0 else 0
 
         k1, k2, k3 = st.columns(3)
@@ -392,17 +409,54 @@ elif st.session_state.active_tab == "dashboard":
         k3.metric("Avg", f"GH₵ {avg_order:.2f}")
 
         st.divider()
-        st.markdown("#### Transaction Audit Trail")
-        if sales:
+        st.markdown(f"#### Transaction Audit Trail ({payment_filter})")
+        
+        if filtered_sales:
             df_sales = pd.DataFrame([{
                 "ID": o.get("order_id"),
-                "Date": o.get("created_at"),
+                "Date & Time": o.get("created_at"),
                 "Method": o.get("payment_method"),
                 "Total (GH₵)": f"{float(o.get('total_amount', 0)):.2f}"
-            } for o in sales])
+            } for o in filtered_sales])
             st.dataframe(df_sales, use_container_width=True)
+
+            # --- GENERATE PDF REPORT FUNCTION ---
+            def create_pdf(data_list, filter_name):
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_font("Arial", 'B', 16)
+                pdf.cell(200, 10, txt="Trendy Pastries and Bakery", ln=True, align="center")
+                pdf.set_font("Arial", 'I', 12)
+                pdf.cell(200, 10, txt=f"Financial History Report ({filter_name})", ln=True, align="center")
+                pdf.ln(10)
+                
+                pdf.set_font("Arial", 'B', 10)
+                pdf.cell(30, 10, "Order ID", 1)
+                pdf.cell(65, 10, "Date & Time", 1)
+                pdf.cell(45, 10, "Method", 1)
+                pdf.cell(50, 10, "Total (GHS)", 1)
+                pdf.ln()
+                
+                pdf.set_font("Arial", '', 10)
+                for item in data_list:
+                    pdf.cell(30, 10, str(item.get("order_id")), 1)
+                    pdf.cell(65, 10, str(item.get("created_at")), 1)
+                    pdf.cell(45, 10, str(item.get("payment_method")), 1)
+                    pdf.cell(50, 10, f"GHS {float(item.get('total_amount', 0)):.2f}", 1)
+                    pdf.ln()
+                
+                return pdf.output(dest='S').encode('latin1')
+
+            pdf_data = create_pdf(filtered_sales, payment_filter)
+            st.download_button(
+                label="📥 Print / Download PDF Report",
+                data=pdf_data,
+                file_name=f"Trendy_Pastries_Financial_Report_{payment_filter.replace(' ', '_')}.pdf",
+                mime="application/pdf",
+                key="download_pdf_btn"
+            )
         else:
-            st.info("No sales recorded yet.")
+            st.info(f"No transactions found for {payment_filter}.")
 
 # ==========================================
 # VIEW 3: CEO ADMIN & SETTINGS (BCRYPT PROTECTED)
