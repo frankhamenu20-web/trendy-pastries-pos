@@ -138,7 +138,7 @@ if 'admin_authenticated' not in st.session_state:
 if 'active_tab' not in st.session_state:
     st.session_state.active_tab = "pos"
 
-# --- TOP HEADER BAR (Branding + Password + Admin) ---
+# --- TOP HEADER BAR (Branding + Analytics + Admin) ---
 head_c1, head_c2, head_c3 = st.columns([2, 1, 1])
 
 with head_c1:
@@ -153,7 +153,7 @@ with head_c1:
         st.markdown("🥐 **Trendy Pastries**", unsafe_allow_html=True)
 
 with head_c2:
-    if st.button("🔑 Password", key="head_pass"):
+    if st.button("📈 Analytics", key="head_analytics"):
         st.session_state.active_tab = "dashboard"
         st.rerun()
 
@@ -365,7 +365,7 @@ if st.session_state.active_tab == "pos":
 # VIEW 2: CEO FINANCIAL DASHBOARD & ANALYTICS (BCRYPT PROTECTED)
 # ==========================================
 elif st.session_state.active_tab == "dashboard":
-    st.markdown("## 📊 CEO Financial Dashboard")
+    st.markdown("## 📈 CEO Analytics Dashboard")
 
     if not st.session_state.dashboard_authenticated:
         st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock analytics.")
@@ -466,4 +466,51 @@ elif st.session_state.active_tab == "admin":
                         if res.data:
                             st.session_state.products.append(res.data[0])
                     else:
-                        st.session_state
+                        st.session_state.products.append(new_item)
+                        
+                    st.success(f"Added {p_name} to cloud database!")
+                    st.rerun()
+
+            st.divider()
+            st.markdown("### Existing Products (Delete)")
+            if not st.session_state.products:
+                st.info("No products in inventory yet.")
+            else:
+                for p in list(st.session_state.products):
+                    d_col1, d_col2, d_col3 = st.columns([3, 2, 1])
+                    d_col1.markdown(f"**{p['name']}**")
+                    d_col2.write(f"GH₵ {float(p['price']):.2f}")
+                    if d_col3.button("Delete 🗑️", key=f"del_prod_{p['id']}"):
+                        if supabase:
+                            supabase.table("products").delete().eq("id", p["id"]).execute()
+                        st.session_state.products = [prod for prod in st.session_state.products if prod["id"] != p["id"]]
+                        st.rerun()
+
+        with admin_tab3:
+            st.markdown("### Change CEO PIN")
+            old_pin = st.text_input("Current PIN", type="password", key="old_pin_box")
+            new_pin = st.text_input("New PIN (Min 4 digits)", type="password", key="new_pin_box")
+            
+            if st.button("Update PIN", key="save_pin_btn"):
+                if bcrypt.checkpw(old_pin.encode('utf-8'), st.session_state.ceo_pin_hash):
+                    if len(new_pin) >= 4:
+                        salt = bcrypt.gensalt()
+                        st.session_state.ceo_pin_hash = bcrypt.hashpw(new_pin.encode('utf-8'), salt)
+                        st.success("CEO PIN updated and securely hashed successfully!")
+                    else:
+                        st.error("PIN must be at least 4 digits.")
+                else:
+                    st.error("Current PIN is incorrect.")
+
+st.markdown("<div style='margin-bottom: 30px;'></div>", unsafe_allow_html=True)
+
+# --- BOTTOM NAVIGATION BAR ---
+bot_c1, bot_c2 = st.columns(2)
+with bot_c1:
+    if st.button("🛒 POS", key="nav_bot_pos"):
+        st.session_state.active_tab = "pos"
+        st.rerun()
+with bot_c2:
+    if st.button("📈 Analytics", key="nav_bot_dash"):
+        st.session_state.active_tab = "dashboard"
+        st.rerun()
