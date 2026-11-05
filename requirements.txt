@@ -4,3 +4,4 @@ requests
 pillow
 supabase
 bcrypt
+fpdf2
