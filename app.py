@@ -107,7 +107,7 @@ if 'products' not in st.session_state:
             st.warning(f"Database connection warning: {e}. Using local fallback cache.")
             st.session_state.products = []
     else:
-        st.session_state.products = []
+            st.session_state.products = []
 
 # --- LOAD SALES HISTORY FROM SUPABASE ---
 if 'sales_history' not in st.session_state:
@@ -123,9 +123,27 @@ if 'sales_history' not in st.session_state:
 if 'cart' not in st.session_state:
     st.session_state.cart = []
 
-# --- SECURE BCRYPT HASH FOR CEO PIN (Forces default "1234" safely) ---
+# --- LOAD SECURE BCRYPT HASH FOR CEO PIN FROM SUPABASE (Fallback to "1234") ---
 if 'ceo_pin_hash' not in st.session_state:
-    st.session_state.ceo_pin_hash = bcrypt.hashpw("1234".encode('utf-8'), bcrypt.gensalt())
+    stored_hash = None
+    if supabase:
+        try:
+            res = supabase.table("settings").select("value").eq("key", "ceo_pin_hash").execute()
+            if res.data and len(res.data) > 0:
+                stored_hash = res.data[0]["value"].encode('utf-8')
+        except:
+            pass
+            
+    if stored_hash:
+        st.session_state.ceo_pin_hash = stored_hash
+    else:
+        default_hash = bcrypt.hashpw("1234".encode('utf-8'), bcrypt.gensalt())
+        st.session_state.ceo_pin_hash = default_hash
+        if supabase:
+            try:
+                supabase.table("settings").upsert({"key": "ceo_pin_hash", "value": default_hash.decode('utf-8')}).execute()
+            except:
+                pass
 
 if 'paystack_secret' not in st.session_state:
     st.session_state.paystack_secret = ""
@@ -380,9 +398,8 @@ elif st.session_state.active_tab == "dashboard":
 
     if not st.session_state.dashboard_authenticated:
         st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock analytics.")
-        # Form allows pressing ENTER key to unlock instantly
         with st.form("dash_login_form"):
-            pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password")
+            pin_entered = st.text_input("Enter CEO PIN", type="password")
             unlock_submitted = st.form_submit_button("Unlock Dashboard")
             if unlock_submitted:
                 if bcrypt.checkpw(pin_entered.encode('utf-8'), st.session_state.ceo_pin_hash):
@@ -475,9 +492,8 @@ elif st.session_state.active_tab == "admin":
 
     if not st.session_state.admin_authenticated:
         st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock admin settings.")
-        # Form allows pressing ENTER key to unlock instantly
         with st.form("admin_login_form"):
-            admin_pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password")
+            admin_pin_entered = st.text_input("Enter CEO PIN", type="password")
             admin_unlock_submitted = st.form_submit_button("Unlock Admin Settings")
             if admin_unlock_submitted:
                 if bcrypt.checkpw(admin_pin_entered.encode('utf-8'), st.session_state.ceo_pin_hash):
@@ -567,8 +583,21 @@ elif st.session_state.active_tab == "admin":
                 if bcrypt.checkpw(old_pin.encode('utf-8'), st.session_state.ceo_pin_hash):
                     if len(new_pin) >= 4:
                         salt = bcrypt.gensalt()
-                        st.session_state.ceo_pin_hash = bcrypt.hashpw(new_pin.encode('utf-8'), salt)
-                        st.success("CEO PIN updated and securely hashed successfully!")
+                        new_hash = bcrypt.hashpw(new_pin.encode('utf-8'), salt)
+                        st.session_state.ceo_pin_hash = new_hash
+                        
+                        # Permanently save new bcrypt hash to Supabase settings table
+                        if supabase:
+                            try:
+                                supabase.table("settings").upsert({
+                                    "key": "ceo_pin_hash",
+                                    "value": new_hash.decode('utf-8')
+                                }).execute()
+                                st.success("CEO PIN updated, securely hashed, and saved permanently to Supabase!")
+                            except Exception as e:
+                                st.warning(f"Updated in session, but cloud sync warning: {e}")
+                        else:
+                            st.success("CEO PIN updated in session successfully!")
                     else:
                         st.error("PIN must be at least 4 digits.")
                 else:
