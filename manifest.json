@@ -1,0 +1,22 @@
+{
+  "name": "Trendy Pastries and Bakery POS",
+  "short_name": "TrendyPastries",
+  "description": "Executive POS & Financial Dashboard for Trendy Pastries and Bakery",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
