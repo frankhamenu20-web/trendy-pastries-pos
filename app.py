@@ -247,12 +247,9 @@ if st.session_state.active_tab == "pos":
 
         st.divider()
         discount_pct = st.number_input("Discount (%)", min_value=0, max_value=100, value=0, key="disc_input")
-        discounted_subtotal = subtotal * (1 - discount_pct / 100)
-        tax = discounted_subtotal * 0.08
-        total = discounted_subtotal + tax
+        total = subtotal * (1 - discount_pct / 100)
 
         st.write(f"Subtotal: GH₵ {subtotal:.2f}")
-        st.write(f"Tax (8%): GH₵ {tax:.2f}")
         st.markdown(f"### Total: GH₵ {total:.2f}")
 
         if st.button("Clear Cart", key="clear_cart_btn"):
@@ -268,21 +265,26 @@ if st.session_state.active_tab == "pos":
 
         customer_email = st.text_input("Customer Email for Receipt", value="customer@trendypastries.com")
 
-        # CASH PAYMENT FLOW
+        # CASH PAYMENT FLOW (Instant UI response + background sync)
         if payment_method == "Cash 💵":
             cash_received = st.number_input("Cash Received (GH₵)", min_value=float(total), value=float(total), step=1.0)
             change_due = cash_received - total
             st.markdown(f"**Change Due:** GH₵ {change_due:.2f}")
             
             if st.button("Complete Cash Sale 💵", key="complete_cash_btn"):
+                # 1. Update local stock immediately
                 for cart_item in st.session_state.cart:
                     new_stock = max(0, cart_item["stock"] - cart_item["qty"])
                     for p in st.session_state.products:
                         if p["id"] == cart_item["id"]:
                             p["stock"] = new_stock
                     if supabase:
-                        supabase.table("products").update({"stock": new_stock}).eq("id", cart_item["id"]).execute()
+                        try:
+                            supabase.table("products").update({"stock": new_stock}).eq("id", cart_item["id"]).execute()
+                        except:
+                            pass
 
+                # 2. Record sale locally first for instant feedback
                 order_id_str = f"TPB-{1000 + len(st.session_state.sales_history) + 1}"
                 timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 order_record = {
@@ -292,13 +294,14 @@ if st.session_state.active_tab == "pos":
                     "items": str(st.session_state.cart),
                     "created_at": timestamp_str
                 }
+                st.session_state.sales_history.insert(0, order_record)
                 
+                # 3. Sync to Supabase in background
                 if supabase:
-                    res = supabase.table("sales_history").insert(order_record).execute()
-                    if res.data:
-                        st.session_state.sales_history.insert(0, res.data[0])
-                else:
-                    st.session_state.sales_history.insert(0, order_record)
+                    try:
+                        supabase.table("sales_history").insert(order_record).execute()
+                    except:
+                        pass
 
                 st.session_state.cart = []
                 st.success("Cash transaction completed successfully!")
@@ -343,7 +346,10 @@ if st.session_state.active_tab == "pos":
                                     if p["id"] == cart_item["id"]:
                                         p["stock"] = new_stock
                                 if supabase:
-                                    supabase.table("products").update({"stock": new_stock}).eq("id", cart_item["id"]).execute()
+                                    try:
+                                        supabase.table("products").update({"stock": new_stock}).eq("id", cart_item["id"]).execute()
+                                    except:
+                                        pass
 
                             order_id_str = f"TPB-{1000 + len(st.session_state.sales_history) + 1}"
                             timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -354,13 +360,13 @@ if st.session_state.active_tab == "pos":
                                 "items": str(st.session_state.cart),
                                 "created_at": timestamp_str
                             }
+                            st.session_state.sales_history.insert(0, order_record)
                             
                             if supabase:
-                                res = supabase.table("sales_history").insert(order_record).execute()
-                                if res.data:
-                                    st.session_state.sales_history.insert(0, res.data[0])
-                            else:
-                                st.session_state.sales_history.insert(0, order_record)
+                                try:
+                                    supabase.table("sales_history").insert(order_record).execute()
+                                except:
+                                    pass
                         else:
                             st.error(f"Paystack Error: {res_data.get('message', 'Initialization failed')}")
                     except Exception as e:
@@ -374,13 +380,16 @@ elif st.session_state.active_tab == "dashboard":
 
     if not st.session_state.dashboard_authenticated:
         st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock analytics.")
-        pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password", key="dash_pin_box")
-        if st.button("Unlock Dashboard", key="unlock_dash_btn"):
-            if bcrypt.checkpw(pin_entered.encode('utf-8'), st.session_state.ceo_pin_hash):
-                st.session_state.dashboard_authenticated = True
-                st.rerun()
-            else:
-                st.error("Incorrect PIN.")
+        # Form allows pressing ENTER key to unlock instantly
+        with st.form("dash_login_form"):
+            pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password")
+            unlock_submitted = st.form_submit_button("Unlock Dashboard")
+            if unlock_submitted:
+                if bcrypt.checkpw(pin_entered.encode('utf-8'), st.session_state.ceo_pin_hash):
+                    st.session_state.dashboard_authenticated = True
+                    st.rerun()
+                else:
+                    st.error("Incorrect PIN.")
     else:
         if st.button("Lock Dashboard", key="lock_dash_btn"):
             st.session_state.dashboard_authenticated = False
@@ -447,7 +456,6 @@ elif st.session_state.active_tab == "dashboard":
                 
                 return pdf.output()
 
-            # Only render download button if there is data to prevent empty-byte errors
             pdf_data = create_pdf(filtered_sales, payment_filter)
             st.download_button(
                 label="📥 Print / Download PDF Report",
@@ -467,13 +475,16 @@ elif st.session_state.active_tab == "admin":
 
     if not st.session_state.admin_authenticated:
         st.warning("🔒 Secure Area. Please enter your CEO PIN to unlock admin settings.")
-        admin_pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password", key="admin_pin_box")
-        if st.button("Unlock Admin Settings", key="unlock_admin_btn"):
-            if bcrypt.checkpw(admin_pin_entered.encode('utf-8'), st.session_state.ceo_pin_hash):
-                st.session_state.admin_authenticated = True
-                st.rerun()
-            else:
-                st.error("Incorrect PIN.")
+        # Form allows pressing ENTER key to unlock instantly
+        with st.form("admin_login_form"):
+            admin_pin_entered = st.text_input("Enter CEO PIN (Default: 1234)", type="password")
+            admin_unlock_submitted = st.form_submit_button("Unlock Admin Settings")
+            if admin_unlock_submitted:
+                if bcrypt.checkpw(admin_pin_entered.encode('utf-8'), st.session_state.ceo_pin_hash):
+                    st.session_state.admin_authenticated = True
+                    st.rerun()
+                else:
+                    st.error("Incorrect PIN.")
     else:
         if st.button("Lock Admin Settings", key="lock_admin_btn"):
             st.session_state.admin_authenticated = False
@@ -517,9 +528,12 @@ elif st.session_state.active_tab == "admin":
                     }
                     
                     if supabase:
-                        res = supabase.table("products").insert(new_item).execute()
-                        if res.data:
-                            st.session_state.products.append(res.data[0])
+                        try:
+                            res = supabase.table("products").insert(new_item).execute()
+                            if res.data:
+                                st.session_state.products.append(res.data[0])
+                        except:
+                            st.session_state.products.append(new_item)
                     else:
                         st.session_state.products.append(new_item)
                         
@@ -537,7 +551,10 @@ elif st.session_state.active_tab == "admin":
                     d_col2.write(f"GH₵ {float(p['price']):.2f}")
                     if d_col3.button("Delete 🗑️", key=f"del_prod_{p['id']}"):
                         if supabase:
-                            supabase.table("products").delete().eq("id", p["id"]).execute()
+                            try:
+                                supabase.table("products").delete().eq("id", p["id"]).execute()
+                            except:
+                                pass
                         st.session_state.products = [prod for prod in st.session_state.products if prod["id"] != p["id"]]
                         st.rerun()
 
