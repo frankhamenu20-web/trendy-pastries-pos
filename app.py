@@ -420,7 +420,7 @@ elif st.session_state.active_tab == "dashboard":
             } for o in filtered_sales])
             st.dataframe(df_sales, use_container_width=True)
 
-            # --- GENERATE PDF REPORT FUNCTION ---
+            # --- GENERATE PDF REPORT FUNCTION (FIXED FOR FPDF2) ---
             def create_pdf(data_list, filter_name):
                 pdf = FPDF()
                 pdf.add_page()
@@ -445,7 +445,8 @@ elif st.session_state.active_tab == "dashboard":
                     pdf.cell(50, 10, f"GHS {float(item.get('total_amount', 0)):.2f}", 1)
                     pdf.ln()
                 
-                return pdf.output(dest='S').encode('latin1')
+                # fpdf2 output() returns bytearray directly without needing .encode('latin1')
+                return pdf.output()
 
             pdf_data = create_pdf(filtered_sales, payment_filter)
             st.download_button(
