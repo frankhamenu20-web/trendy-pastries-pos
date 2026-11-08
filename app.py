@@ -8,6 +8,8 @@ from PIL import Image
 from supabase import create_client, Client
 import bcrypt
 from fpdf import FPDF
+import json
+import streamlit.components.v1 as components
 
 # --- LOAD CUSTOM LOGO FOR BROWSER TAB (FAVICON) ---
 try:
@@ -22,6 +24,81 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="collapsed"
 )
+# --- DYNAMIC PWA & IOS HOME SCREEN INJECTION ---
+def inject_pwa_headers():
+    logo_b64_str = get_logo_base64()
+    icon_data_url = f"data:image/jpeg;base64,{logo_b64_str}" if logo_b64_str else ""
+    
+    # Construct manifest dictionary
+    manifest_dict = {
+        "name": "Trendy Pastries and Bakery",
+        "short_name": "Trendy Pastries",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#0f172a",
+        "theme_color": "#0f172a",
+        "icons": [
+            {
+                "src": icon_data_url,
+                "sizes": "192x192",
+                "type": "image/jpeg"
+            },
+            {
+                "src": icon_data_url,
+                "sizes": "512x512",
+                "type": "image/jpeg"
+            }
+        ]
+    }
+    
+    manifest_json_str = json.dumps(manifest_dict)
+    manifest_b64 = base64.b64encode(manifest_json_str.encode()).decode()
+    manifest_data_url = f"data:application/json;base64,{manifest_b64}"
+
+    pwa_html = f"""
+    <script>
+    const head = window.parent.document.head;
+    const doc = window.parent.document;
+    
+    // Set correct app title
+    doc.title = "Trendy Pastries and Bakery";
+
+    // Remove any existing duplicate meta/link tags
+    const selectors = 'meta[name="apple-mobile-web-app-capable"], meta[name="apple-mobile-web-app-status-bar-style"], meta[name="apple-mobile-web-app-title"], link[rel="apple-touch-icon"], link[rel="manifest"]';
+    head.querySelectorAll(selectors).forEach(el => el.remove());
+
+    // Inject Apple PWA Meta Tags
+    const meta1 = document.createElement('meta');
+    meta1.name = "apple-mobile-web-app-capable";
+    meta1.content = "yes";
+    head.appendChild(meta1);
+
+    const meta2 = document.createElement('meta');
+    meta2.name = "apple-mobile-web-app-status-bar-style";
+    meta2.content = "black-translucent";
+    head.appendChild(meta2);
+
+    const meta3 = document.createElement('meta');
+    meta3.name = "apple-mobile-web-app-title";
+    meta3.content = "Trendy Pastries";
+    head.appendChild(meta3);
+
+    // Inject Apple Touch Icon
+    const appleIcon = document.createElement('link');
+    appleIcon.rel = "apple-touch-icon";
+    appleIcon.href = "{icon_data_url}";
+    head.appendChild(appleIcon);
+
+    // Inject Web App Manifest
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = "manifest";
+    manifestLink.href = "{manifest_data_url}";
+    head.appendChild(manifestLink);
+    </script>
+    """
+    components.html(pwa_html, height=0, width=0)
+
+inject_pwa_headers()
 
 # --- LOAD LOCAL LOGO AS BASE64 FOR HEADER RENDERING ---
 def get_logo_base64():
