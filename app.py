@@ -24,6 +24,17 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="collapsed"
 )
+
+# --- LOAD LOCAL LOGO AS BASE64 FOR HEADER RENDERING ---
+def get_logo_base64():
+    if os.path.exists("logo.jpg"):
+        with open("logo.jpg", "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    return None
+
+logo_b64 = get_logo_base64()
+
 # --- DYNAMIC PWA & IOS HOME SCREEN INJECTION ---
 def inject_pwa_headers():
     logo_b64_str = get_logo_base64()
@@ -99,16 +110,6 @@ def inject_pwa_headers():
     components.html(pwa_html, height=0, width=0)
 
 inject_pwa_headers()
-
-# --- LOAD LOCAL LOGO AS BASE64 FOR HEADER RENDERING ---
-def get_logo_base64():
-    if os.path.exists("logo.jpg"):
-        with open("logo.jpg", "rb") as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
-    return None
-
-logo_b64 = get_logo_base64()
 
 # --- CONNECT TO SUPABASE CLOUD DATABASE ---
 @st.cache_resource
