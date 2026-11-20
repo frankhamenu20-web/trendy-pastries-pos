@@ -8,8 +8,6 @@ from PIL import Image
 from supabase import create_client, Client
 import bcrypt
 from fpdf import FPDF
-import json
-import streamlit.components.v1 as components
 
 # --- LOAD CUSTOM LOGO FOR BROWSER TAB (FAVICON) ---
 try:
@@ -34,82 +32,6 @@ def get_logo_base64():
     return None
 
 logo_b64 = get_logo_base64()
-
-# --- DYNAMIC PWA & IOS HOME SCREEN INJECTION ---
-def inject_pwa_headers():
-    logo_b64_str = get_logo_base64()
-    icon_data_url = f"data:image/jpeg;base64,{logo_b64_str}" if logo_b64_str else ""
-    
-    # Construct manifest dictionary
-    manifest_dict = {
-        "name": "Trendy Pastries and Bakery",
-        "short_name": "Trendy Pastries",
-        "start_url": "/",
-        "display": "standalone",
-        "background_color": "#0f172a",
-        "theme_color": "#0f172a",
-        "icons": [
-            {
-                "src": icon_data_url,
-                "sizes": "192x192",
-                "type": "image/jpeg"
-            },
-            {
-                "src": icon_data_url,
-                "sizes": "512x512",
-                "type": "image/jpeg"
-            }
-        ]
-    }
-    
-    manifest_json_str = json.dumps(manifest_dict)
-    manifest_b64 = base64.b64encode(manifest_json_str.encode()).decode()
-    manifest_data_url = f"data:application/json;base64,{manifest_b64}"
-
-    pwa_html = f"""
-    <script>
-    const head = window.parent.document.head;
-    const doc = window.parent.document;
-    
-    // Set correct app title
-    doc.title = "Trendy Pastries and Bakery";
-
-    // Remove any existing duplicate meta/link tags
-    const selectors = 'meta[name="apple-mobile-web-app-capable"], meta[name="apple-mobile-web-app-status-bar-style"], meta[name="apple-mobile-web-app-title"], link[rel="apple-touch-icon"], link[rel="manifest"]';
-    head.querySelectorAll(selectors).forEach(el => el.remove());
-
-    // Inject Apple PWA Meta Tags
-    const meta1 = document.createElement('meta');
-    meta1.name = "apple-mobile-web-app-capable";
-    meta1.content = "yes";
-    head.appendChild(meta1);
-
-    const meta2 = document.createElement('meta');
-    meta2.name = "apple-mobile-web-app-status-bar-style";
-    meta2.content = "black-translucent";
-    head.appendChild(meta2);
-
-    const meta3 = document.createElement('meta');
-    meta3.name = "apple-mobile-web-app-title";
-    meta3.content = "Trendy Pastries";
-    head.appendChild(meta3);
-
-    // Inject Apple Touch Icon
-    const appleIcon = document.createElement('link');
-    appleIcon.rel = "apple-touch-icon";
-    appleIcon.href = "{icon_data_url}";
-    head.appendChild(appleIcon);
-
-    // Inject Web App Manifest
-    const manifestLink = document.createElement('link');
-    manifestLink.rel = "manifest";
-    manifestLink.href = "{manifest_data_url}";
-    head.appendChild(manifestLink);
-    </script>
-    """
-    components.html(pwa_html, height=0, width=0)
-
-inject_pwa_headers()
 
 # --- CONNECT TO SUPABASE CLOUD DATABASE ---
 @st.cache_resource
@@ -185,7 +107,7 @@ if 'products' not in st.session_state:
             st.warning(f"Database connection warning: {e}. Using local fallback cache.")
             st.session_state.products = []
     else:
-            st.session_state.products = []
+        st.session_state.products = []
 
 # --- LOAD SALES HISTORY FROM SUPABASE ---
 if 'sales_history' not in st.session_state:
@@ -368,7 +290,6 @@ if st.session_state.active_tab == "pos":
             st.markdown(f"**Change Due:** GH₵ {change_due:.2f}")
             
             if st.button("Complete Cash Sale 💵", key="complete_cash_btn"):
-                # 1. Update local stock immediately
                 for cart_item in st.session_state.cart:
                     new_stock = max(0, cart_item["stock"] - cart_item["qty"])
                     for p in st.session_state.products:
@@ -380,7 +301,6 @@ if st.session_state.active_tab == "pos":
                         except:
                             pass
 
-                # 2. Record sale locally first for instant feedback
                 order_id_str = f"TPB-{1000 + len(st.session_state.sales_history) + 1}"
                 timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 order_record = {
@@ -392,7 +312,6 @@ if st.session_state.active_tab == "pos":
                 }
                 st.session_state.sales_history.insert(0, order_record)
                 
-                # 3. Sync to Supabase in background
                 if supabase:
                     try:
                         supabase.table("sales_history").insert(order_record).execute()
@@ -492,7 +411,6 @@ elif st.session_state.active_tab == "dashboard":
 
         sales = st.session_state.sales_history
         
-        # Payment Method Sorting / Filtering
         st.markdown("#### Filter Transactions by Payment Method")
         payment_filter = st.selectbox(
             "Select Payment Method", 
@@ -524,7 +442,6 @@ elif st.session_state.active_tab == "dashboard":
             } for o in filtered_sales])
             st.dataframe(df_sales, use_container_width=True)
 
-            # --- GENERATE PDF REPORT FUNCTION ---
             def create_pdf(data_list, filter_name):
                 pdf = FPDF()
                 pdf.add_page()
@@ -549,7 +466,7 @@ elif st.session_state.active_tab == "dashboard":
                     pdf.cell(50, 10, f"GHS {float(item.get('total_amount', 0)):.2f}", 1)
                     pdf.ln()
                 
-                return pdf.output()
+                return bytes(pdf.output())
 
             pdf_data = create_pdf(filtered_sales, payment_filter)
             st.download_button(
@@ -664,7 +581,6 @@ elif st.session_state.active_tab == "admin":
                         new_hash = bcrypt.hashpw(new_pin.encode('utf-8'), salt)
                         st.session_state.ceo_pin_hash = new_hash
                         
-                        # Permanently save new bcrypt hash to Supabase settings table
                         if supabase:
                             try:
                                 supabase.table("settings").upsert({
